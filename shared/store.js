@@ -80,7 +80,8 @@
     all: function(){ return data; },
 
     get: function(k, dft){ return data[k] === undefined ? dft : data[k]; },
-    set: function(k, v){ data[k] = v; save(); if(k === 'music' || k === 'sfx') saveNow(); },
+    /* 立刻落盘：存档数据不能等防抖，否则刚存的进度可能丢 */
+    set: function(k, v){ data[k] = v; saveNow(); },
 
     /* 最高纪录：不带 sub 时返回该游戏所有子项里的最大值 */
     best: function(gameId, sub){

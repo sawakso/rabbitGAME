@@ -99,6 +99,82 @@
   background:rgba(60,44,36,.9);color:#fff;font-size:13px;border-radius:999px;padding:9px 18px;
   pointer-events:none;opacity:0;transition:opacity .3s}
 .toast.show{opacity:1}
+
+/* ---------- 视图切换 ---------- */
+.app{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+.view{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:8px}
+.pill.en b{color:#4C9179}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:9;
+  width:min(100vw,460px);margin:0 auto;
+  display:flex;gap:2px;padding:6px 8px calc(7px + env(safe-area-inset-bottom));
+  background:rgba(255,251,244,.96);border-top:2px solid var(--line);
+  backdrop-filter:blur(8px);box-shadow:0 -6px 18px rgba(150,118,92,.10)}
+.nav button{flex:1;border:0;background:transparent;font-family:inherit;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:5px 0;font-size:10.5px;color:var(--ink3)}
+.nav button i{font-style:normal;font-size:16px;line-height:1;color:#C2AE99}
+.nav button.on{color:#C4697B}
+.nav button.on i{color:#E68B9C}
+.nav button .dot{position:absolute;margin-left:18px;margin-top:-2px;width:6px;height:6px;
+  border-radius:50%;background:#E8657A}
+
+/* ---------- 劳作页 ---------- */
+.workHead{display:flex;gap:7px;flex:0 0 auto}
+.wk{flex:1;background:rgba(255,253,248,.94);border:2px solid var(--line);border-radius:14px;
+  padding:5px 4px;text-align:center;box-shadow:2px 3px 0 var(--tap)}
+.wk small{display:block;font-size:9.5px;color:var(--ink3)}
+.wk b{font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+.boardBox{position:relative;width:100%;padding:8px;border-radius:20px;
+  background:rgba(255,252,246,.86);border:2px solid var(--line);
+  box-shadow:4px 5px 0 var(--tap),0 10px 24px rgba(150,118,92,.12)}
+#m3{display:block;margin:0 auto;border-radius:13px;touch-action:none}
+.workTip{flex:0 0 auto;margin:0;font-size:10.5px;color:#BCA894;text-align:center;line-height:1.6}
+
+/* ---------- 通用底部弹层 ---------- */
+.sheetWrap{position:fixed;inset:0;z-index:24;display:flex;align-items:flex-end;
+  justify-content:center;background:rgba(88,66,54,.46);backdrop-filter:blur(4px);
+  animation:fadeIn .2s}
+.sheet{width:min(100vw,460px);max-height:82vh;overflow-y:auto;
+  background:var(--paper);border-radius:24px 24px 0 0;border:2px solid var(--line);
+  border-bottom:0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));
+  animation:sheetUp .28s cubic-bezier(.2,1.2,.4,1)}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:.4}to{transform:translateY(0);opacity:1}}
+.sheet h2{margin:0 0 4px;font-size:18px;color:#4E3E36;text-align:center}
+.sheet .sub{margin:0 0 14px;font-size:11.5px;color:var(--ink3);text-align:center}
+.sheetClose{width:100%;margin-top:14px;border:1.5px solid #C9AE93;border-radius:999px;
+  padding:11px 0;background:#FFFDF8;color:#6B5648;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit}
+
+/* 签到 */
+.signGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.signDay{position:relative;border:1.5px solid var(--line);border-radius:13px;
+  padding:8px 2px 6px;text-align:center;background:rgba(255,255,252,.7)}
+.signDay b{display:block;font-size:10px;color:var(--ink3);font-weight:600}
+.signDay span{display:block;font-size:12px;color:#D8863C;font-weight:700;margin-top:3px}
+.signDay.got{background:rgba(240,250,244,.9);border-color:#CFE2D6}
+.signDay.got span{color:#5E9B7B}
+.signDay.today{border-color:var(--pink);box-shadow:0 0 0 3px rgba(230,139,156,.18)}
+.signDay.big{grid-column:span 2;background:rgba(255,244,228,.95);border-color:#EACDA0}
+
+/* 转盘 */
+.wheelBox{position:relative;width:min(74vw,270px);margin:6px auto 12px;aspect-ratio:1}
+.wheelBox canvas{width:100%;height:100%;display:block}
+.wheelPin{position:absolute;left:50%;top:-4px;transform:translateX(-50%);
+  font-size:20px;color:#C4697B;text-shadow:0 2px 0 rgba(255,255,255,.9)}
+.wheelTimes{display:flex;gap:8px;margin-top:4px}
+.wheelTimes div{flex:1;text-align:center;font-size:11.5px;color:var(--ink3)}
+
+/* 任务 */
+.task{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;
+  border:1.5px solid var(--line);background:rgba(255,255,252,.75);margin-bottom:8px}
+.task .tk{flex:1;text-align:left}
+.task .tk b{display:block;font-size:13px;color:#5A4B42}
+.task .tk small{display:block;font-size:10.5px;color:var(--ink3);margin-top:1px}
+.task .rw{font-size:11.5px;color:#D8863C;font-weight:700}
+.task.done{background:rgba(240,250,244,.9);border-color:#CFE2D6}
+.task .go{border:1.5px solid #C9AE93;border-radius:999px;padding:6px 14px;background:#FFFDF8;
+  color:#6B5648;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.task .go[disabled]{opacity:.45}
 </style>
 </head>
 <body>
@@ -111,22 +187,52 @@
     <div class="pill">
       <small>胡萝卜</small><b id="carrotNum">0</b><span class="rate" id="rate">+0.2/秒</span>
     </div>
+    <div class="pill en">
+      <small>体力</small><b id="energyNum">5</b><span class="rate" id="energyTip">已满</span>
+    </div>
     <div class="spacer"></div>
     <button class="iconBtn" id="btnCard" title="生成形象卡">✧</button>
   </div>
 
-  <div class="stage">
-    <canvas id="stage"></canvas>
-    <div class="stageTag" id="stageTag">在家种胡萝卜中…</div>
-  </div>
+  <!-- ===== 衣橱视图 ===== -->
+  <section class="view" id="viewCloset">
+    <div class="stage">
+      <canvas id="stage"></canvas>
+      <div class="stageTag" id="stageTag">在家种胡萝卜中…</div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="grid" id="grid"></div>
+    <div class="actions">
+      <button class="btn primary" id="btnDraw">开盲盒<small>30 胡萝卜</small></button>
+      <button class="btn ad" id="btnAd">看广告免费抽<small>5 分钟一次</small></button>
+    </div>
+  </section>
 
-  <div class="tabs" id="tabs"></div>
-  <div class="grid" id="grid"></div>
+  <!-- ===== 劳作视图 ===== -->
+  <section class="view hide" id="viewWork">
+    <div class="workHead">
+      <div class="wk"><small>剩余步数</small><b id="movesNum">20</b></div>
+      <div class="wk"><small>本局收获</small><b id="gainNum">0</b></div>
+      <div class="wk"><small>最高纪录</small><b id="bestNum">0</b></div>
+    </div>
+    <div class="boardBox">
+      <canvas id="m3"></canvas>
+      <div class="combo" id="combo"></div>
+    </div>
+    <p class="workTip" id="workTip">滑动交换相邻的水果，三个连一起就消掉 · 没有输赢，消到步数用完为止</p>
+    <div class="actions">
+      <button class="btn primary" id="btnWork">开始劳作<small>消耗 1 点体力</small></button>
+      <button class="btn ad" id="btnRevive">看广告 +5 步<small>每局一次</small></button>
+    </div>
+  </section>
 
-  <div class="actions">
-    <button class="btn primary" id="btnDraw">开盲盒<small>30 胡萝卜</small></button>
-    <button class="btn ad" id="btnAd">看广告免费抽<small>5 分钟一次</small></button>
-  </div>
+  <nav class="nav">
+    <button data-view="closet" class="on"><i>◈</i>衣橱</button>
+    <button data-view="work"><i>✿</i>劳作</button>
+    <button id="btnSign"><i>☼</i>签到</button>
+    <button id="btnWheel"><i>◎</i>转盘</button>
+    <button id="btnTask"><i>✓</i>任务</button>
+  </nav>
 </main>
 
 <div class="drawWrap hide" id="drawWrap">
@@ -143,10 +249,16 @@
   </div>
 </div>
 
+<!-- 通用弹层：签到 / 转盘 / 任务 / 结算都复用它 -->
+<div class="sheetWrap hide" id="sheetWrap">
+  <div class="sheet" id="sheet"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="../shared/store.js"></script>
 <script src="../shared/audio.js"></script>
+<script src="../shared/match3.js"></script>
 <script src="../shared/theme.js"></script>
 <script>
 (function(){
@@ -165,12 +277,43 @@ var DRAW_COST      = 30;           /* 开一次盲盒 */
 var AD_DRAW_CD     = 5 * 60 * 1000;/* 免费抽的冷却 */
 var START_CARROT   = 90;
 
+/* 劳作（三消） */
+var M3_COLS = 6, M3_ROWS = 7, M3_KINDS = 5;
+var M3_MOVES = 20;                 /* 每局步数 */
+var M3_REVIVE = 5;                 /* 看广告续的步数 */
+var ENERGY_MAX = 5;                /* 体力上限 */
+var ENERGY_SEC = 20 * 60;          /* 每 20 分钟回 1 点体力 */
+var ENERGY_AD = 3;                 /* 看广告补的体力 */
+var ENERGY_AD_MAX = 3;             /* 每天最多补几次 */
+
 /* 抽取概率：普通 62% / 稀有 28% / 传说 10% */
 var RARITY = [
   null,
   { name:'普通', color:'#9C8878', weight:62 },
   { name:'稀有', color:'#6C8FD8', weight:28 },
   { name:'传说', color:'#D9A02C', weight:10 }
+];
+
+/* 七日签到的奖励，第 7 天给一次必出稀有的盲盒 */
+var SIGN_REWARD = [20, 30, 40, 50, 60, 80, 0];
+
+/* 幸运转盘：8 个格子，weight 是相对概率 */
+var WHEEL = [
+  { label:'20 胡萝卜',  kind:'carrot', amount:20,  weight:26, color:'#F6C6D0' },
+  { label:'1 点体力',   kind:'energy', amount:1,   weight:20, color:'#C9E4D6' },
+  { label:'50 胡萝卜',  kind:'carrot', amount:50,  weight:16, color:'#FBE3B8' },
+  { label:'再来一次',   kind:'again',  amount:1,   weight:12, color:'#D8E4F8' },
+  { label:'2 点体力',   kind:'energy', amount:2,   weight:10, color:'#A8D8C4' },
+  { label:'120 胡萝卜', kind:'carrot', amount:120, weight:8,  color:'#F6D48C' },
+  { label:'稀有必得券', kind:'ticket', amount:1,   weight:5,  color:'#CFC2F0' },
+  { label:'谢谢参与',   kind:'none',   amount:0,   weight:3,  color:'#E8E2D8' }
+];
+
+/* 每日任务 */
+var TASKS = [
+  { id:'draw',  name:'开 1 次盲盒',   reward:20 },
+  { id:'work',  name:'劳作 1 局',     reward:25 },
+  { id:'dress', name:'换一套搭配',     reward:15 }
 ];
 
 /* ============================================================
@@ -480,31 +623,215 @@ function bg_grass(c){
   ell(c, 82, 124, 3, 3); c.fill();
 }
 
+/* --- 劳作棋盘上的五种水果（三消棋子） --- */
+var FRUIT = [
+  { main:'#F0913F', dark:'#D8762A', light:'#FFC089', leaf:'#7FB86A' },  /* 胡萝卜 */
+  { main:'#E8657A', dark:'#C74A5F', light:'#FF93A3', leaf:'#7FB86A' },  /* 草莓 */
+  { main:'#6C8FD8', dark:'#4E6FB4', light:'#9DB8F0', leaf:'#5E93C9' },  /* 蓝莓 */
+  { main:'#7FB86A', dark:'#5E9648', light:'#A8D691', leaf:'#5E9648' },  /* 叶子 */
+  { main:'#F2C14E', dark:'#D19E2C', light:'#FFE0A0', leaf:'#D19E2C' }   /* 星星 */
+];
+
+function drawFruit(c, kind, cx, cy, S, alpha){
+  var f = FRUIT[kind] || FRUIT[0];
+  var s = S / 44;
+  c.save();
+  c.globalAlpha = alpha === undefined ? 1 : alpha;
+  c.translate(cx, cy);
+  c.scale(s, s);
+
+  c.fillStyle = 'rgba(150,118,92,.14)';
+  c.beginPath(); c.ellipse(0, 13, 12, 4, 0, 0, Math.PI * 2); c.fill();
+
+  if(kind === 0){                       /* 胡萝卜 */
+    c.fillStyle = f.leaf;
+    c.beginPath(); c.ellipse(-4.6, -13.4, 3.4, 5.6, -0.5, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(4.6, -13.4, 3.4, 5.6, 0.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = f.main;
+    c.beginPath();
+    c.moveTo(-9.5, -8.5);
+    c.quadraticCurveTo(-11.6, 4, 0, 13.2);
+    c.quadraticCurveTo(11.6, 4, 9.5, -8.5);
+    c.quadraticCurveTo(0, -12.4, -9.5, -8.5);
+    c.closePath(); c.fill();
+    c.strokeStyle = f.light; c.lineWidth = 1.6; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(-4, -4); c.lineTo(-1.6, 1.6); c.stroke();
+    c.beginPath(); c.moveTo(1.6, 0); c.lineTo(3.4, 5.4); c.stroke();
+
+  } else if(kind === 1){                 /* 草莓 */
+    c.fillStyle = f.main;
+    c.beginPath();
+    c.moveTo(0, 14);
+    c.bezierCurveTo(-14, 6, -13, -9, 0, -10);
+    c.bezierCurveTo(13, -9, 14, 6, 0, 14);
+    c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.55)';
+    for(var i = 0; i < 5; i++){
+      var a = -1.9 + i * 0.42;
+      c.beginPath(); c.ellipse(Math.cos(a) * 6.4, Math.sin(a) + 2.2, 1.15, 1.7, 0, 0, Math.PI * 2); c.fill();
+    }
+    c.fillStyle = f.leaf;
+    for(var j = 0; j < 5; j++){
+      var ang = (j / 5) * Math.PI - Math.PI;
+      c.beginPath(); c.ellipse(Math.cos(ang) * 4.4, -9.6 + Math.sin(ang) * 1.6, 3.1, 2.0, ang, 0, Math.PI * 2); c.fill();
+    }
+    c.fillStyle = f.dark; c.fillRect(-0.9, -15.6, 1.8, 5.2);
+
+  } else if(kind === 2){                 /* 蓝莓 */
+    c.fillStyle = f.main;
+    c.beginPath(); c.arc(0, 1.5, 12.2, 0, Math.PI * 2); c.fill();
+    c.fillStyle = f.dark;
+    c.beginPath();
+    c.moveTo(-5, -9.2); c.lineTo(-2.6, -4.2); c.lineTo(0, -8.2);
+    c.lineTo(2.6, -4.2); c.lineTo(5, -9.2); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.42)';
+    c.beginPath(); c.ellipse(-4.4, -3.4, 3.4, 2.2, -0.6, 0, Math.PI * 2); c.fill();
+
+  } else if(kind === 3){                 /* 叶子 */
+    c.fillStyle = f.main;
+    c.beginPath();
+    c.moveTo(-11, 9.5);
+    c.quadraticCurveTo(-9, -9, 11.4, -10.4);
+    c.quadraticCurveTo(9.6, 9.6, -11, 9.5);
+    c.closePath(); c.fill();
+    c.strokeStyle = f.dark; c.lineWidth = 1.5; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(-8.4, 8.2); c.quadraticCurveTo(-1, 0.2, 9.4, -8.6); c.stroke();
+    c.lineWidth = 1.1;
+    for(var k = 0; k < 3; k++){
+      var px = -4.6 + k * 4.2, py = 3.6 - k * 3.6;
+      c.beginPath(); c.moveTo(px, py); c.lineTo(px + 4.4, py - 2.6); c.stroke();
+    }
+
+  } else {                               /* 星星 */
+    c.fillStyle = f.main;
+    star(c, 0, 1, 13.4, 5.9);
+    c.fill();
+    c.fillStyle = 'rgba(255,255,255,.5)';
+    c.beginPath(); c.ellipse(-2.6, -2.6, 2.4, 1.6, -0.7, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+}
+
+/* --- 第二批道具 --- */
+function hat_beret(c){               /* 贝雷帽 */
+  c.fillStyle = '#6C8FD8';
+  c.beginPath(); c.ellipse(50, 24, 25, 15, 0, Math.PI, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(50, 24, 30, 8, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#4E6FB4';
+  ell(c, 52, 8, 3.2, 3.2); c.fill();
+}
+function hat_magic(c){               /* 魔法帽 */
+  c.fillStyle = '#6B4FA8';
+  c.beginPath(); c.moveTo(50, -12); c.lineTo(71, 26); c.lineTo(29, 26); c.closePath(); c.fill();
+  c.fillStyle = '#513B85';
+  rr(c, 22, 24, 56, 10, 5); c.fill();
+  c.fillStyle = '#F2C14E';
+  star(c, 57, 6, 4.4, 2); c.fill();
+  ell(c, 43, 14, 2.2, 2.2); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.5)';
+  ell(c, 46, 20, 1.6, 1.6); c.fill();
+}
+function cloth_raincoat(c){          /* 小雨衣 */
+  c.fillStyle = '#F2C14E';
+  rr(c, 24, 80, 52, 38, 13); c.fill();
+  c.fillStyle = '#E0AC2E';
+  c.fillRect(49, 86, 2, 30);
+  rr(c, 36, 76, 28, 9, 4.5); c.fill();
+  c.fillStyle = '#FFF3D0';
+  ell(c, 42, 92, 2.4, 2.4); c.fill();
+  ell(c, 58, 92, 2.4, 2.4); c.fill();
+  ell(c, 42, 104, 2.4, 2.4); c.fill();
+  ell(c, 58, 104, 2.4, 2.4); c.fill();
+}
+function cloth_sweater(c){           /* 毛衣 */
+  c.fillStyle = '#E0A97F';
+  rr(c, 22, 80, 56, 36, 13); c.fill();
+  c.fillStyle = '#C98D63';
+  for(var i = 0; i < 3; i++) c.fillRect(22, 90 + i * 9, 56, 2.6);
+  c.fillStyle = '#C98D63';
+  rr(c, 37, 76, 26, 9, 4.5); c.fill();
+}
+function cloth_space(c){             /* 太空服 */
+  c.fillStyle = '#EDF2F6';
+  rr(c, 22, 78, 56, 40, 14); c.fill();
+  c.fillStyle = '#C7D6E2';
+  rr(c, 36, 90, 28, 17, 5); c.fill();
+  c.fillStyle = '#E8657A'; ell(c, 44, 98.5, 2.6, 2.6); c.fill();
+  c.fillStyle = '#6C8FD8'; ell(c, 56, 98.5, 2.6, 2.6); c.fill();
+  c.fillStyle = '#B6C7D6';
+  rr(c, 39, 73, 22, 8, 4); c.fill();
+  c.fillStyle = '#DCE6EE'; c.fillRect(30, 108, 40, 3);
+}
+function acc_necklace(c){            /* 项链 */
+  c.strokeStyle = '#E2C072'; c.lineWidth = 1.6;
+  c.beginPath(); c.arc(50, 74, 13, Math.PI * 0.18, Math.PI * 0.82); c.stroke();
+  c.fillStyle = '#9DB8F0';
+  ell(c, 40, 80, 2, 2); c.fill();
+  ell(c, 44, 84, 2, 2); c.fill();
+  ell(c, 56, 84, 2, 2); c.fill();
+  ell(c, 60, 80, 2, 2); c.fill();
+  c.fillStyle = '#E8657A';
+  star(c, 50, 90, 5, 2.1); c.fill();
+}
+function acc_backpack(c){            /* 小背包 */
+  c.fillStyle = '#8FC7B4';
+  rr(c, 64, 88, 24, 27, 9); c.fill();
+  c.fillStyle = '#7BB6A2';
+  rr(c, 68, 97, 16, 12, 4); c.fill();
+  c.fillStyle = '#5E9B84';
+  rr(c, 71, 85, 10, 6, 3); c.fill();
+  c.strokeStyle = '#5E9B84'; c.lineWidth = 1.6;
+  c.beginPath(); c.moveTo(68, 90); c.quadraticCurveTo(50, 82, 38, 88); c.stroke();
+}
+function bg_rainbow(c){              /* 彩虹 */
+  var g = c.createLinearGradient(0, 0, 0, 132);
+  g.addColorStop(0, '#EAF3FB'); g.addColorStop(1, '#F8F0F6');
+  c.fillStyle = g; c.fillRect(0, 0, 100, 132);
+  var cols = ['#F09595', '#F6C68C', '#F6E08C', '#A8D691', '#9DB8F0', '#C3A8E8'];
+  c.lineCap = 'round';
+  for(var i = 0; i < cols.length; i++){
+    c.strokeStyle = cols[i]; c.lineWidth = 7;
+    c.beginPath(); c.arc(50, 140, 100 - i * 7, Math.PI * 1.06, Math.PI * 1.94); c.stroke();
+  }
+  c.fillStyle = 'rgba(255,255,255,.92)';
+  ell(c, 22, 46, 14, 7); c.fill();
+  ell(c, 80, 58, 12, 6); c.fill();
+  ell(c, 52, 34, 9, 5); c.fill();
+}
+
 /* ============================================================
    3. 道具清单
    box 是这件东西在兔子坐标系里的范围，用来裁小图标
    ============================================================ */
 var ITEMS = [
   /* 帽子 */
-  { id:'h_straw',  cat:'hat',   name:'草莓帽', rar:1, draw:hat_strawberry, box:[16,0,68,38] },
-  { id:'h_wreath', cat:'hat',   name:'花环',   rar:1, draw:hat_wreath,     box:[14,16,72,72] },
-  { id:'h_night',  cat:'hat',   name:'睡帽',   rar:2, draw:hat_night,      box:[20,-6,68,46] },
-  { id:'h_crown',  cat:'hat',   name:'小皇冠', rar:3, draw:hat_crown,      box:[26,0,48,36] },
+  { id:'h_straw',  cat:'hat',   name:'草莓帽',   rar:1, draw:hat_strawberry, box:[16,0,68,38] },
+  { id:'h_wreath', cat:'hat',   name:'花环',     rar:1, draw:hat_wreath,     box:[14,16,72,72] },
+  { id:'h_beret',  cat:'hat',   name:'贝雷帽',   rar:1, draw:hat_beret,      box:[18,4,64,34] },
+  { id:'h_night',  cat:'hat',   name:'睡帽',     rar:2, draw:hat_night,      box:[20,-6,68,46] },
+  { id:'h_magic',  cat:'hat',   name:'魔法帽',   rar:3, draw:hat_magic,      box:[20,-16,60,52] },
+  { id:'h_crown',  cat:'hat',   name:'小皇冠',   rar:3, draw:hat_crown,      box:[26,0,48,36] },
   /* 衣服 */
-  { id:'c_overall',cat:'cloth', name:'背带裤', rar:1, draw:cloth_overall,  box:[22,72,56,58] },
-  { id:'c_stripe', cat:'cloth', name:'条纹衫', rar:1, draw:cloth_stripe,   box:[20,78,60,40] },
-  { id:'c_dress',  cat:'cloth', name:'小裙子', rar:2, draw:cloth_dress,    box:[18,78,64,52] },
-  { id:'c_scarf',  cat:'cloth', name:'围巾',   rar:2, draw:cloth_scarf,    box:[24,68,54,42] },
+  { id:'c_overall',cat:'cloth', name:'背带裤',   rar:1, draw:cloth_overall,  box:[22,72,56,58] },
+  { id:'c_stripe', cat:'cloth', name:'条纹衫',   rar:1, draw:cloth_stripe,   box:[20,78,60,40] },
+  { id:'c_raincoat',cat:'cloth',name:'小雨衣',   rar:1, draw:cloth_raincoat, box:[22,74,56,46] },
+  { id:'c_dress',  cat:'cloth', name:'小裙子',   rar:2, draw:cloth_dress,    box:[18,78,64,52] },
+  { id:'c_scarf',  cat:'cloth', name:'围巾',     rar:2, draw:cloth_scarf,    box:[24,68,54,42] },
+  { id:'c_sweater',cat:'cloth', name:'毛衣',     rar:2, draw:cloth_sweater,  box:[20,74,60,44] },
+  { id:'c_space',  cat:'cloth', name:'太空服',   rar:3, draw:cloth_space,    box:[20,70,60,50] },
   /* 配饰 */
-  { id:'a_glass',  cat:'acc',   name:'圆眼镜', rar:1, draw:acc_glass,      box:[22,38,56,26] },
-  { id:'a_bow',    cat:'acc',   name:'蝴蝶结', rar:1, draw:acc_bow,        box:[44,12,40,28] },
-  { id:'a_star',   cat:'acc',   name:'小星星', rar:2, draw:acc_star,       box:[60,92,26,26] },
-  { id:'a_wing',   cat:'acc',   name:'小翅膀', rar:3, draw:acc_wing,       box:[10,60,80,44] },
+  { id:'a_glass',  cat:'acc',   name:'圆眼镜',   rar:1, draw:acc_glass,      box:[22,38,56,26] },
+  { id:'a_bow',    cat:'acc',   name:'蝴蝶结',   rar:1, draw:acc_bow,        box:[44,12,40,28] },
+  { id:'a_star',   cat:'acc',   name:'小星星',   rar:2, draw:acc_star,       box:[60,92,26,26] },
+  { id:'a_necklace',cat:'acc',  name:'项链',     rar:2, draw:acc_necklace,   box:[32,70,36,26] },
+  { id:'a_backpack',cat:'acc',  name:'小背包',   rar:2, draw:acc_backpack,   box:[34,78,58,42] },
+  { id:'a_wing',   cat:'acc',   name:'小翅膀',   rar:3, draw:acc_wing,       box:[10,60,80,44] },
   /* 背景 */
-  { id:'b_dusk',   cat:'bg',    name:'黄昏',   rar:1, draw:bg_dusk,        box:[0,0,100,132], fill:true },
-  { id:'b_grass',  cat:'bg',    name:'草地',   rar:1, draw:bg_grass,       box:[0,0,100,132], fill:true },
-  { id:'b_sakura', cat:'bg',    name:'樱花',   rar:2, draw:bg_sakura,      box:[0,0,100,132], fill:true },
-  { id:'b_night',  cat:'bg',    name:'星空',   rar:2, draw:bg_night,       box:[0,0,100,132], fill:true }
+  { id:'b_dusk',   cat:'bg',    name:'黄昏',     rar:1, draw:bg_dusk,        box:[0,0,100,132], fill:true },
+  { id:'b_grass',  cat:'bg',    name:'草地',     rar:1, draw:bg_grass,       box:[0,0,100,132], fill:true },
+  { id:'b_sakura', cat:'bg',    name:'樱花',     rar:2, draw:bg_sakura,      box:[0,0,100,132], fill:true },
+  { id:'b_night',  cat:'bg',    name:'星空',     rar:2, draw:bg_night,       box:[0,0,100,132], fill:true },
+  { id:'b_rainbow',cat:'bg',    name:'彩虹',     rar:3, draw:bg_rainbow,     box:[0,0,100,132], fill:true }
 ];
 
 var CATS = [
@@ -533,27 +860,75 @@ var S = {
   worn: { hat:null, cloth:null, acc:null, bg:'b_dusk' },
   lastTick: Date.now(),
   nextFreeDraw: 0,
-  drawn: 0
+  drawn: 0,
+  /* 劳作与体力 */
+  energy: ENERGY_MAX,
+  energyAt: Date.now(),
+  bestRound: 0,
+  /* 七日签到 */
+  signDay: 0,
+  signDate: '',
+  signAdDate: '',
+  /* 幸运转盘 */
+  wheelDate: '',
+  wheelUsed: 0,
+  wheelAdUsed: 0,
+  tickets: 0,
+  /* 每日任务 */
+  taskDate: '',
+  taskDone: {}
 };
+
+function today(){
+  var d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
 
 function loadSave(){
   var raw = Store.get(SAVE_KEY, null);
   if(raw && typeof raw === 'object'){
-    if(typeof raw.carrots === 'number') S.carrots = raw.carrots;
-    if(raw.owned instanceof Array) S.owned = raw.owned;
-    if(raw.worn && typeof raw.worn === 'object') S.worn = raw.worn;
-    if(typeof raw.lastTick === 'number') S.lastTick = raw.lastTick;
-    if(typeof raw.nextFreeDraw === 'number') S.nextFreeDraw = raw.nextFreeDraw;
-    if(typeof raw.drawn === 'number') S.drawn = raw.drawn;
+    for(var k in S){
+      if(raw[k] !== undefined){
+        /* 对象类型的字段做浅合并，避免旧存档缺键 */
+        if(S[k] && typeof S[k] === 'object' && !(S[k] instanceof Array) && raw[k]){
+          for(var k2 in raw[k]) S[k][k2] = raw[k][k2];
+        } else if(raw[k] !== null){
+          S[k] = raw[k];
+        }
+      }
+    }
   }
   /* 默认送一个背景，不然展示台是空的 */
   if(S.owned.indexOf('b_dusk') < 0) S.owned.push('b_dusk');
   if(!S.worn.bg) S.worn.bg = 'b_dusk';
+
+  /* 跨天重置：转盘次数、每日任务 */
+  var t = today();
+  if(S.wheelDate !== t){ S.wheelDate = t; S.wheelUsed = 0; S.wheelAdUsed = 0; }
+  if(S.taskDate !== t){ S.taskDate = t; S.taskDone = {}; }
+
+  recoverEnergy();
   syncBest();
 }
 /* 把收集进度写进全局存档，大厅卡片上就能显示「已收集 N 件」 */
 function syncBest(){ Store.setBest(GAME_ID, 'collect', S.owned.length); }
 function saveNow(){ S.lastTick = Date.now(); Store.set(SAVE_KEY, S); }
+
+/* ---------- 体力：随时间恢复，是每日回访的理由 ---------- */
+function recoverEnergy(){
+  var now = Date.now();
+  if(S.energy >= ENERGY_MAX){ S.energyAt = now; return 0; }
+  var gained = Math.floor((now - S.energyAt) / (ENERGY_SEC * 1000));
+  if(gained > 0){
+    S.energy = Math.min(ENERGY_MAX, S.energy + gained);
+    S.energyAt = now - ((now - S.energyAt) % (ENERGY_SEC * 1000));
+  }
+  return gained;
+}
+function energyIn(){
+  if(S.energy >= ENERGY_MAX) return 0;
+  return Math.max(0, ENERGY_SEC * 1000 - (Date.now() - S.energyAt));
+}
 
 function collectOffline(){
   var now = Date.now();
@@ -708,6 +1083,7 @@ function renderGrid(){
       /* 再点一次就是脱下来 */
       S.worn[it.cat] = (S.worn[it.cat] === it.id) ? null : it.id;
       saveNow();
+      taskDone('dress');
       renderGrid(); drawStage(); updateStageTag();
     });
   });
@@ -721,8 +1097,17 @@ function updateStageTag(){
   $('stageTag').textContent = names.length ? names.join(' · ') : '兔子还光着呢，给它抽件衣服吧';
 }
 
+var lastTicketShown = -1;
+function renderDrawBtn(){
+  if(lastTicketShown === S.tickets) return;
+  lastTicketShown = S.tickets;
+  $('btnDraw').innerHTML = S.tickets > 0
+    ? '用稀有券抽<small>剩 ' + S.tickets + ' 张 · 必出稀有以上</small>'
+    : '开盲盒<small>' + DRAW_COST + ' 胡萝卜</small>';
+}
 function renderCarrots(){
   $('carrotNum').textContent = Math.floor(S.carrots);
+  renderDrawBtn();
   $('rate').textContent = '+' + CARROT_PER_SEC.toFixed(1) + '/秒';
 }
 
@@ -763,6 +1148,7 @@ function openBox(free){
 
   drawing = true;
   if(!free){ S.carrots -= DRAW_COST; saveNow(); renderCarrots(); }
+  taskDone('draw');
   GameAudio.unlock();
 
   var wrap = $('drawWrap'), box = $('drawBox'), tip = $('drawTip');
@@ -771,7 +1157,11 @@ function openBox(free){
   tip.textContent = '正在打开…';
   wrap.classList.remove('hide');
 
-  var got = pickByRarity(pool);
+  /* 有稀有券就先用掉：必出稀有以上 */
+  var rarePool = pool.filter(function(it){ return it.rar >= 2; });
+  var useTicket = S.tickets > 0 && rarePool.length > 0;
+  if(useTicket) S.tickets--;
+  var got = useTicket ? pickByRarity(rarePool) : pickByRarity(pool);
   S.owned.push(got.id);
   S.drawn++;
   S.worn[got.cat] = got.id;          /* 抽到就自动穿上，立刻看到效果 */
@@ -914,7 +1304,397 @@ $('cardWrap').addEventListener('click', function(e){
 });
 
 /* ============================================================
-   10. 主循环
+   10. 视图切换 · 劳作 · 签到 · 转盘 · 每日任务
+   ============================================================ */
+
+/* ---------- 视图 ---------- */
+var curView = 'closet';
+
+function switchView(v){
+  curView = v;
+  $('viewCloset').classList.toggle('hide', v !== 'closet');
+  $('viewWork').classList.toggle('hide', v !== 'work');
+  Array.prototype.forEach.call(document.querySelectorAll('.nav button[data-view]'), function(b){
+    b.classList.toggle('on', b.dataset.view === v);
+  });
+  if(v === 'work'){ if(m3) m3.setActive(true); }
+  else { if(m3) m3.setActive(false); drawStage(); }
+  refreshDots();
+}
+
+Array.prototype.forEach.call(document.querySelectorAll('.nav button[data-view]'), function(b){
+  b.addEventListener('click', function(){
+    GameAudio.unlock(); GameAudio.sfx('ui');
+    switchView(b.dataset.view);
+  });
+});
+
+/* 有可领的东西时，在导航上点一个小红点 */
+function refreshDots(){
+  setDot($('btnSign'), S.signDate !== today());
+  var taskLeft = 0;
+  TASKS.forEach(function(t){ if(!S.taskDone[t.id]) taskLeft++; });
+  setDot($('btnTask'), taskLeft > 0);
+  setDot($('btnWheel'), S.wheelUsed + S.wheelAdUsed < 3 + 2);
+}
+function setDot(el, on){
+  var d = el.querySelector('.dot');
+  if(on && !d){
+    d = document.createElement('span'); d.className = 'dot'; el.appendChild(d);
+  } else if(!on && d){
+    d.remove();
+  }
+}
+
+/* ---------- 通用底部弹层 ---------- */
+/* binder 必须和内容一起传进来：原来是在 showSheet 之后再赋 sheetBinder，
+   等于弹层里的按钮从来没绑上事件 */
+function showSheet(html, binder){
+  $('sheet').innerHTML = html;
+  $('sheetWrap').classList.remove('hide');
+  sheetBinder = binder || null;
+  bindSheet();
+}
+function closeSheet(){ $('sheetWrap').classList.add('hide'); }
+$('sheetWrap').addEventListener('click', function(e){ if(e.target === $('sheetWrap')) closeSheet(); });
+/* 弹层里的事件在插入后绑定；每个弹层自己补 bind 钩子 */
+var sheetBinder = null;
+function bindSheet(){ if(sheetBinder) sheetBinder(); }
+
+/* ---------- 每日任务（完成即自动发放，少一层点击） ---------- */
+function taskDone(id){
+  if(S.taskDone[id]) return false;
+  var t = null;
+  TASKS.forEach(function(x){ if(x.id === id) t = x; });
+  if(!t) return false;
+  S.taskDone[id] = 1;
+  S.carrots += t.reward;
+  saveNow(); renderCarrots(); refreshDots();
+  toast('任务完成：' + t.name + '　+' + t.reward + ' 胡萝卜');
+  return true;
+}
+
+function sheetTask(){
+  var html = '<h2>今日任务</h2><p class="sub">每天三个小目标，完成自动发奖</p>';
+  TASKS.forEach(function(t){
+    var done = !!S.taskDone[t.id];
+    var target = t.id === 'work' ? 'work' : (t.id === 'draw' ? 'closet' : 'closet');
+    html += '<div class="task' + (done ? ' done' : '') + '">' +
+              '<div class="tk"><b>' + t.name + '</b>' +
+              '<small>' + (done ? '已完成，奖励已发放' : '奖励 ' + t.reward + ' 胡萝卜') + '</small></div>' +
+              (done ? '<span class="rw">✓</span>'
+                    : '<button class="go" data-go="' + target + '">去完成</button>') +
+            '</div>';
+  });
+  html += '<button class="sheetClose" data-close="1">知道了</button>';
+  showSheet(html, bindSheet);
+  function bindSheet(){
+    Array.prototype.forEach.call($('sheet').querySelectorAll('[data-go]'), function(b){
+      b.addEventListener('click', function(){
+        closeSheet(); switchView(b.dataset.go);
+      });
+    });
+  }
+}
+
+/* ---------- 七日签到 ---------- */
+function sheetSign(){
+  var canSign = S.signDate !== today();
+  var html = '<h2>七日签到</h2><p class="sub">第 7 天有一张必出稀有的盲盒券</p><div class="signGrid">';
+  for(var i = 1; i <= 7; i++){
+    var got = i <= S.signDay;
+    var isToday = canSign && i === S.signDay + 1;
+    html += '<div class="signDay' + (got ? ' got' : '') + (isToday ? ' today' : '') +
+            (i === 7 ? ' big' : '') + '">' +
+            '<b>第 ' + i + ' 天</b><span>' + (i === 7 ? '稀有盲盒券' : SIGN_REWARD[i - 1] + ' 胡萝卜') + '</span></div>';
+  }
+  html += '</div>';
+
+  if(canSign){
+    html += '<button class="btn primary" style="width:100%;margin-top:14px" id="doSign">领取今天的奖励</button>';
+  } else if(S.signAdDate !== today()){
+    html += '<button class="btn ad" style="width:100%;margin-top:14px" id="signAd">看广告 · 今天的奖励 ×3</button>';
+  } else {
+    html += '<p class="sub" style="margin-top:14px">今天已经签过了，明天再来</p>';
+  }
+  html += '<button class="sheetClose" data-close="1">关闭</button>';
+  showSheet(html, bindSheet);
+
+  function bindSheet(){
+    var b = $('doSign');
+    if(b) b.addEventListener('click', function(){
+      GameAudio.unlock();
+      S.signDay = Math.min(7, S.signDay + 1);
+      S.signDate = today();
+      var reward = SIGN_REWARD[S.signDay - 1] || 0;
+      if(S.signDay === 7){
+        S.tickets = (S.tickets || 0) + 1;
+        toast('拿到稀有盲盒券！');
+      } else {
+        S.carrots += reward;
+        toast('签到成功 +' + reward + ' 胡萝卜');
+      }
+      GameAudio.sfx('win');
+      saveNow(); renderCarrots(); refreshDots();
+      /* 签完当天还漏签就继续，否则回到展示 */
+      sheetSign();
+    });
+    var ad = $('signAd');
+    if(ad) ad.addEventListener('click', function(){
+      showAd('signbonus', function(ok){
+        if(!ok) return;
+        S.signAdDate = today();
+        var reward = (SIGN_REWARD[Math.max(0, S.signDay - 1)] || 20) * 3;
+        S.carrots += reward;
+        saveNow(); renderCarrots(); refreshDots();
+        toast('+' + reward + ' 胡萝卜');
+        GameAudio.sfx('win');
+        sheetSign();
+      });
+    });
+  }
+}
+
+/* ---------- 幸运转盘 ---------- */
+var wheelAngle = 0, wheelSpinning = false;
+
+function pickWheelIndex(){
+  var total = 0;
+  WHEEL.forEach(function(w){ total += w.weight; });
+  var roll = Math.random() * total;
+  for(var i = 0; i < WHEEL.length; i++){
+    roll -= WHEEL[i].weight;
+    if(roll <= 0) return i;
+  }
+  return 0;
+}
+
+function drawWheel(cv, angle){
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var w = cv.clientWidth || 260;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr);
+  var c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var R = w / 2, cx = R, cy = R;
+  var seg = Math.PI * 2 / WHEEL.length;
+
+  c.clearRect(0, 0, w, w);
+  c.save();
+  c.translate(cx, cy);
+  c.rotate(angle);
+  for(var i = 0; i < WHEEL.length; i++){
+    var a0 = i * seg - Math.PI / 2 - seg / 2;
+    c.beginPath();
+    c.moveTo(0, 0);
+    c.arc(0, 0, R - 4, a0, a0 + seg);
+    c.closePath();
+    c.fillStyle = WHEEL[i].color;
+    c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 1.5; c.stroke();
+
+    /* 文字 */
+    c.save();
+    c.rotate(a0 + seg / 2);
+    c.fillStyle = '#5A4B42';
+    c.font = '600 ' + Math.max(9, Math.round(w * 0.038)) + 'px "PingFang SC","Microsoft YaHei",sans-serif';
+    c.textAlign = 'right';
+    c.textBaseline = 'middle';
+    c.fillText(WHEEL[i].label, R - 16, 0);
+    c.restore();
+  }
+  c.restore();
+
+  /* 中心 */
+  c.beginPath(); c.arc(cx, cy, w * 0.11, 0, Math.PI * 2);
+  c.fillStyle = '#FFFDF8'; c.fill();
+  c.strokeStyle = '#E4D3C0'; c.lineWidth = 2; c.stroke();
+  c.fillStyle = '#E68B9C';
+  c.font = '700 ' + Math.round(w * 0.062) + 'px "PingFang SC",sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('GO', cx, cy + 1);
+}
+
+function grantWheel(idx){
+  var w = WHEEL[idx];
+  GameAudio.sfx(w.kind === 'none' ? 'bad' : 'win');
+  if(w.kind === 'carrot'){ S.carrots += w.amount; toast('+' + w.amount + ' 胡萝卜'); }
+  else if(w.kind === 'energy'){ S.energy = Math.min(ENERGY_MAX, S.energy + w.amount); toast('+' + w.amount + ' 点体力'); }
+  else if(w.kind === 'ticket'){ S.tickets = (S.tickets || 0) + 1; toast('稀有盲盒券 +1'); }
+  else if(w.kind === 'again'){ S.wheelUsed = Math.max(0, S.wheelUsed - 1); toast('再来一次！'); }
+  else toast('谢谢参与，明天再来');
+  saveNow(); renderCarrots(); renderEnergy(); refreshDots();
+}
+
+function sheetWheel(){
+  var freeLeft = Math.max(0, 3 - S.wheelUsed);
+  var adLeft = Math.max(0, 2 - S.wheelAdUsed);
+  var html = '<h2>幸运转盘</h2><p class="sub">每天 3 次免费，还能看广告多转 2 次</p>' +
+    '<div class="wheelBox"><div class="wheelPin">▼</div><canvas id="wheelCv"></canvas></div>' +
+    '<div class="wheelTimes"><div>免费剩余 <b>' + freeLeft + '</b> 次</div>' +
+    '<div>广告剩余 <b>' + adLeft + '</b> 次</div></div>' +
+    '<div class="btns2" style="display:flex;gap:9px;margin-top:12px">' +
+      '<button class="btn primary" style="flex:1" id="spinFree"' + (freeLeft ? '' : ' disabled') + '>免费转</button>' +
+      '<button class="btn ad" style="flex:1" id="spinAd"' + (adLeft ? '' : ' disabled') + '>看广告转</button>' +
+    '</div>' +
+    '<button class="sheetClose" data-close="1">关闭</button>';
+  showSheet(html, bindSheet);
+  var cv = $('wheelCv');
+  drawWheel(cv, wheelAngle);
+
+  function spin(useAd){
+    if(wheelSpinning) return;
+    wheelSpinning = true;
+    $('spinFree').disabled = true; $('spinAd').disabled = true;
+    GameAudio.unlock();
+
+    var idx = pickWheelIndex();
+    var seg = 360 / WHEEL.length;
+    /* 让指针停在第 idx 格：目标角度算出来后再多转几圈 */
+    var target = -(idx * seg) + (Math.random() - 0.5) * seg * 0.6;
+    var from = wheelAngle % 360;
+    var delta = ((target - from) % 360 + 360) % 360 + 360 * 5;
+    var dur = 2600, t0 = performance.now();
+
+    var finished = false;
+    function finish(){
+      if(finished) return;
+      finished = true;
+      wheelSpinning = false;
+      wheelAngle = ((from + delta) % 360) * Math.PI / 180;
+      drawWheel(cv, wheelAngle);
+      if(useAd) S.wheelAdUsed++; else S.wheelUsed++;
+      grantWheel(idx);
+      setTimeout(sheetWheel, 700);
+    }
+    function anim(now){
+      if(finished) return;
+      var k = Math.min(1, (now - t0) / dur);
+      var e = 1 - Math.pow(1 - k, 3);              /* ease-out */
+      wheelAngle = (from + delta * e) * Math.PI / 180;
+      drawWheel(cv, wheelAngle);
+      if(k < 1) requestAnimationFrame(anim); else finish();
+    }
+    requestAnimationFrame(anim);
+    /* 兜底：rAF 被节流（后台标签页等）时也要能结算 */
+    setTimeout(finish, dur + 400);
+  }
+
+  function bindSheet(){
+    $('spinFree').addEventListener('click', function(){ spin(false); });
+    $('spinAd').addEventListener('click', function(){
+      showAd('wheel', function(ok){ if(ok) spin(true); });
+    });
+  }
+}
+
+/* ---------- 劳作（三消） ---------- */
+var m3 = null;
+var round = { playing:false, gained:0, reviveUsed:false };
+
+function initM3(){
+  m3 = Match3.create($('m3'), {
+    cols: M3_COLS, rows: M3_ROWS, kinds: M3_KINDS, moves: M3_MOVES,
+    drawTile: drawFruit,
+    particleColor: function(kind){ return FRUIT[kind].main; },
+    sfx: function(name, n){ GameAudio.sfx(name, n); },
+    onMatch: function(info){
+      round.gained += info.gain;
+      $('gainNum').textContent = round.gained;
+      if(info.combo >= 2){
+        var el = $('combo');
+        el.textContent = '连击 x' + info.combo;
+        el.classList.remove('show');
+        void el.offsetWidth;
+        el.classList.add('show');
+      }
+    },
+    onMove: function(left){
+      $('movesNum').textContent = left;
+      /* 步数快用完了给个提示 */
+      $('workTip').textContent = left <= 0
+        ? '这一局结束了，收下胡萝卜或者看广告续步'
+        : (left <= 3 ? '只剩 ' + left + ' 步了，可以看广告续步' : '滑动交换相邻的水果，三个连一起就消掉');
+    },
+    onEnd: function(total){ onRoundEnd(total); }
+  });
+  m3.setActive(curView === 'work');
+}
+
+function startRound(){
+  recoverEnergy();
+  if(S.energy < 1){ toast('体力不够了，等一会儿或者看广告补'); return; }
+  S.energy--;
+  saveNow(); renderEnergy();
+  /* 就地改字段而不是整体重新赋值，外部持有引用时才不会拿到旧对象 */
+  round.playing = true; round.gained = 0; round.reviveUsed = false;
+  $('gainNum').textContent = 0;
+  $('btnWork').disabled = true;
+  $('btnRevive').disabled = false;
+  GameAudio.unlock();
+  m3.start();
+  taskDone('work');
+  refreshDots();
+}
+
+function onRoundEnd(total){
+  round.playing = false;
+  $('btnRevive').disabled = round.reviveUsed;
+  $('btnWork').disabled = false;
+  if(total > S.bestRound){ S.bestRound = total; saveNow(); }
+  $('bestNum').textContent = S.bestRound;
+  showSheet(sheetRound(total));
+}
+
+function finalizeRound(total){
+  var gained = round.gained;
+  S.carrots += gained;
+  saveNow(); renderCarrots();
+  closeSheet();
+  toast('收下 ' + gained + ' 个胡萝卜');
+  GameAudio.sfx('win');
+  $('btnRevive').disabled = true;
+}
+
+function sheetRound(total){
+  var html = '<h2>这一局结束了</h2>' +
+    '<p class="sub">消掉 ' + total + ' 个水果，收获 ' + round.gained + ' 个胡萝卜</p>' +
+    '<div class="resultRow">' +
+      '<div class="box"><small>本局消除</small><b>' + total + '</b></div>' +
+      '<div class="box"><small>收获</small><b>' + round.gained + '</b></div>' +
+      '<div class="box"><small>最高纪录</small><b>' + S.bestRound + '</b></div>' +
+    '</div>' +
+    (round.reviveUsed
+      ? '<p class="sub">这一局已经续过步了</p>'
+      : '<button class="btn ad" style="width:100%;margin-top:12px" id="reviveNow">看广告 +' + M3_REVIVE + ' 步，继续消</button>') +
+    '<button class="btn primary" style="width:100%;margin-top:10px" id="takeCarrot">收下胡萝卜</button>' +
+    '<button class="sheetClose" data-close="1">先去忙别的</button>';
+  showSheet(html, bindSheet);
+  function bindSheet(){
+    var rv = $('reviveNow');
+    if(rv) rv.addEventListener('click', function(){
+      showAd('revive', function(ok){
+        if(!ok) return;
+        round.reviveUsed = true;
+        closeSheet();
+        m3.addMoves(M3_REVIVE);
+        $('gainNum').textContent = round.gained;
+      });
+    });
+    $('takeCarrot').addEventListener('click', function(){ finalizeRound(total); });
+  }
+}
+
+/* ---------- 体力显示 ---------- */
+function renderEnergy(){
+  $('energyNum').textContent = S.energy;
+  var left = energyIn();
+  $('energyTip').textContent = S.energy >= ENERGY_MAX
+    ? '已满'
+    : Math.ceil(left / 60000) + ' 分';
+}
+
+/* ============================================================
+   11. 主循环
    ============================================================ */
 var lastT = performance.now();
 function loop(now){
@@ -923,7 +1703,11 @@ function loop(now){
 
   if(S.carrots < 99999) S.carrots += CARROT_PER_SEC * dt;
   renderCarrots();
-  drawStage();
+  if(curView === 'closet') drawStage();
+
+  /* 体力恢复 */
+  if(recoverEnergy() > 0){ saveNow(); refreshDots(); }
+  renderEnergy();
 
   var cd = S.nextFreeDraw - Date.now();
   var btn = $('btnAd');
@@ -943,7 +1727,7 @@ function loop(now){
 }
 
 /* ============================================================
-   11. 启动
+   12. 启动
    ============================================================ */
 loadSave();
 var offline = collectOffline();
@@ -951,16 +1735,42 @@ if(offline > 0) toast('兔子帮你种了 ' + offline + ' 个胡萝卜');
 renderTabs();
 renderGrid();
 renderCarrots();
+renderEnergy();
 resizeStage();
 drawStage();
 updateStageTag();
+initM3();
+$('bestNum').textContent = S.bestRound;
+refreshDots();
+
+/* 导航上的三个弹层 */
+$('btnSign').addEventListener('click', function(){ GameAudio.unlock(); GameAudio.sfx('ui'); sheetSign(); });
+$('btnWheel').addEventListener('click', function(){ GameAudio.unlock(); GameAudio.sfx('ui'); sheetWheel(); });
+$('btnTask').addEventListener('click', function(){ GameAudio.unlock(); GameAudio.sfx('ui'); sheetTask(); });
+$('btnWork').addEventListener('click', startRound);
+$('btnRevive').addEventListener('click', function(){
+  if(round.reviveUsed || !round.playing){ toast('这一局已经续过步了'); return; }
+  showAd('revive', function(ok){
+    if(!ok) return;
+    round.reviveUsed = true;
+    m3.addMoves(M3_REVIVE);
+    GameAudio.sfx('ui');
+  });
+});
 
 setInterval(saveNow, 8000);
 window.addEventListener('pagehide', saveNow);
 document.addEventListener('visibilitychange', function(){
-  if(document.hidden) saveNow();
-  else { var g = collectOffline(); if(g > 0) toast('又种了 ' + g + ' 个胡萝卜'); saveNow(); }
+  if(document.hidden){ saveNow(); if(m3) m3.setActive(false); }
+  else {
+    var g = collectOffline();
+    if(g > 0) toast('又种了 ' + g + ' 个胡萝卜');
+    saveNow();
+    if(m3) m3.setActive(curView === 'work');
+  }
 });
+/* 屏幕尺寸变了要重算棋盘 */
+window.addEventListener('resize', function(){ if(m3) m3.resize(); });
 
 GameAudio.autoUnlock();
 requestAnimationFrame(loop);
@@ -970,16 +1780,32 @@ window.__closet = {
   state: function(){
     return {
       carrots: Math.floor(S.carrots),
+      energy: S.energy,
       owned: S.owned.length,
       total: ITEMS.length,
       worn: S.worn,
-      drawn: S.drawn
+      drawn: S.drawn,
+      tickets: S.tickets || 0,
+      signDay: S.signDay,
+      wheelUsed: S.wheelUsed,
+      wheelAdUsed: S.wheelAdUsed,
+      taskDone: S.taskDone,
+      bestRound: S.bestRound,
+      view: curView,
+      round: round
     };
   },
   S: S,
   openBox: openBox,
   giveCarrots: function(n){ S.carrots += n; saveNow(); renderCarrots(); },
-  clearAll: function(){ S.carrots = 0; },
+  setEnergy: function(n){ S.energy = n; S.energyAt = Date.now(); saveNow(); renderEnergy(); },
+  switchView: switchView,
+  startRound: startRound,
+  spinWheel: function(){ sheetWheel(); },
+  openSign: sheetSign,
+  openTask: sheetTask,
+  m3: function(){ return m3; },
+  round: round,
   render: function(){ renderTabs(); renderGrid(); drawStage(); updateStageTag(); }
 };
 })();
