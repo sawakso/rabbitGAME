@@ -408,9 +408,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const CELL_BG = '#F3E8D7';
   let worstTile = { d: 999, which: '', by: '' };
   pal.forEach(function(f){
-    const dm = dist(f.main, CELL_BG), dd = dist(f.dark, CELL_BG);
-    const best = Math.max(dm, dd);
-    if(best < worstTile.d) worstTile = { d: best, which: f.main, by: dm >= dd ? '本体色' : '描边色' };
+    const dm = dist(f.main, CELL_BG), dd = dist(f.dark, CELL_BG), dl = dist(f.line, CELL_BG);
+    const best = Math.max(dm, dd, dl);
+    if(best < worstTile.d) worstTile = { d: best, which: f.main, by: dl >= dm && dl >= dd ? '描边色' : (dm >= dd ? '本体色' : '暗部色') };
   });
   ok(worstTile.d >= 60,
      '每种棋子都分得出来（最难的一种 ' + worstTile.which + ' 靠' + worstTile.by +

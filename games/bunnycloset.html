@@ -696,15 +696,23 @@ function bg_grass(c){
    白萝卜的本体接近米白、和浅色底格对比很弱，全靠描边把轮廓交代出来，
    粒子的颜色也要单独给（pop），否则白色粒子在浅底上根本看不见。 */
 var FRUIT = [
-  { main:'#F0913F', dark:'#D8762A', light:'#FFC089', leaf:'#7FB86A' },
-  { main:'#F2E4BC', dark:'#BC9C6C', light:'#FFFFFF', leaf:'#6FA84E', pop:'#BC9C6C' },
-  { main:'#8E6FC8', dark:'#6E51A6', light:'#BCA2EA', leaf:'#7FB86A' },
-  { main:'#7FB86A', dark:'#5E9648', light:'#A8D691', leaf:'#4F8340' },
-  { main:'#D8506B', dark:'#B33952', light:'#F58CA2', leaf:'#6FAF58' }
+  { main:'#FF8C2E', light:'#FFC46E', dark:'#E56414', line:'#A34310', leaf:'#5CB83C', leafD:'#3E8F26', pop:'#E56414' },
+  { main:'#FAF5E2', light:'#FFFFFF', dark:'#E6D9B4', line:'#9C7B4A', leaf:'#5CB83C', leafD:'#3E8F26', pop:'#9C7B4A' },
+  { main:'#9A6AE0', light:'#C9A9F5', dark:'#7442BE', line:'#4E2A85', leaf:'#5CB83C', leafD:'#3E8F26', pop:'#7442BE' },
+  { main:'#7ECB4F', light:'#B7E98D', dark:'#55A02E', line:'#34691C', leaf:'#3E8F26', leafD:'#2C6E1B', pop:'#55A02E' },
+  { main:'#F2455F', light:'#FF92A8', dark:'#D01E45', line:'#8F0F2E', leaf:'#5CB83C', leafD:'#3E8F26', pop:'#D01E45' }
 ];
 
-/* 白萝卜的轮廓要填、要描边、还要当裁切区，画三遍，所以单独抽一个函数。
-   底部特意收成一小段细根，免得整块看成「一格空位」 */
+/* 五种轮廓。白萝卜要填、要裁切、要描边共三遍，单独抽出来 */
+function carrotPath(c){
+  c.beginPath();
+  c.moveTo(-8.4, -8.5);
+  c.quadraticCurveTo(-10.4, 4, 0, 13.6);
+  c.quadraticCurveTo(10.4, 4, 8.4, -8.5);
+  c.quadraticCurveTo(0, -12.4, -8.4, -8.5);
+  c.closePath();
+}
+/* 白萝卜的轮廓。底部特意收成一小段细根，免得整块看成「一格空位」 */
 function daikonPath(c){
   c.beginPath();
   c.moveTo(-9.4, -10);
@@ -713,6 +721,85 @@ function daikonPath(c){
   c.bezierCurveTo(8.6, 10, 12.4, 1, 9.4, -10);
   c.quadraticCurveTo(0, -14, -9.4, -10);
   c.closePath();
+}
+function dropPath(c){
+  c.beginPath();
+  c.moveTo(0, 14);
+  c.bezierCurveTo(-11.5, 6, -12, -7.5, 0, -9.5);
+  c.bezierCurveTo(12, -7.5, 11.5, 6, 0, 14);
+  c.closePath();
+}
+function eggPath(c){
+  c.beginPath();
+  c.ellipse(0, 2.5, 12.4, 10.6, 0, 0, Math.PI * 2);
+}
+function ballPath(c){
+  c.beginPath();
+  c.arc(0, -0.4, 10.2, 0, Math.PI * 2);
+}
+
+/* ============================================================
+   「多汁感」的三个来源，全部代码画（参考水果消除类爆款画风）：
+   1. 体积 —— 主体径向渐变，光源固定左上，全场景一致才像一套素材
+   2. 高光 —— 左上亮斑，有的再加一颗小点
+   3. 描边 —— 比主色深得多的轮廓线，这种画风最重的识别特征；
+      白萝卜的浅色本体也全靠它立住轮廓
+   ============================================================ */
+function glossFill(c, pathFn, f){
+  pathFn(c);
+  var g = c.createRadialGradient(-4.5, -5.5, 1.5, 0, 1, 15.5);
+  g.addColorStop(0, f.light);
+  g.addColorStop(0.42, f.main);
+  g.addColorStop(1, f.dark);
+  c.fillStyle = g;
+  c.fill();
+}
+function glossOutline(c, pathFn, f, w){
+  pathFn(c);
+  c.strokeStyle = f.line;
+  c.lineWidth = w || 2.1;
+  c.lineJoin = 'round';
+  c.stroke();
+}
+/* 底部反光：贴着轮廓下缘内侧的一条浅色弧，让物体「坐」在光里 */
+function rimLight(c, pathFn, color, cy, rx){
+  c.save();
+  pathFn(c); c.clip();
+  c.strokeStyle = color;
+  c.lineWidth = 2.8;
+  c.beginPath();
+  c.ellipse(0, cy, rx || 11.4, rx ? rx * 0.56 : 6.4, 0, Math.PI * 0.15, Math.PI * 0.85);
+  c.stroke();
+  c.restore();
+}
+function shine(c, x, y, rx, ry, rot, a){
+  c.fillStyle = 'rgba(255,255,255,' + (a || 0.85) + ')';
+  c.beginPath();
+  c.ellipse(x, y, rx, ry, rot || -0.5, 0, Math.PI * 2);
+  c.fill();
+}
+/* 叶子：渐变 + 描边 + 中脉 */
+function glossyLeaf(c, x, y, rx, ry, rot, f){
+  c.save();
+  c.translate(x, y);
+  c.rotate(rot);
+  c.beginPath();
+  c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  var g = c.createLinearGradient(0, -ry, 0, ry);
+  g.addColorStop(0, f.leaf);
+  g.addColorStop(1, f.leafD);
+  c.fillStyle = g;
+  c.fill();
+  c.strokeStyle = f.leafD;
+  c.lineWidth = 1.4;
+  c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.5)';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(0, -ry * 0.6);
+  c.lineTo(0, ry * 0.6);
+  c.stroke();
+  c.restore();
 }
 
 function drawFruit(c, kind, cx, cy, S, alpha){
@@ -726,82 +813,75 @@ function drawFruit(c, kind, cx, cy, S, alpha){
   c.fillStyle = 'rgba(150,118,92,.14)';
   c.beginPath(); c.ellipse(0, 13, 12, 4, 0, 0, Math.PI * 2); c.fill();
 
-  if(kind === 0){                       /* 胡萝卜：最细最长的锥形 + 羽状叶 */
-    c.fillStyle = f.leaf;
-    c.beginPath(); c.ellipse(-4.6, -13.4, 3.2, 5.4, -0.5, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(4.6, -13.4, 3.2, 5.4, 0.5, 0, Math.PI * 2); c.fill();
-    c.fillStyle = f.main;
-    c.beginPath();
-    c.moveTo(-8.4, -8.5);
-    c.quadraticCurveTo(-10.4, 4, 0, 13.6);
-    c.quadraticCurveTo(10.4, 4, 8.4, -8.5);
-    c.quadraticCurveTo(0, -12.4, -8.4, -8.5);
-    c.closePath(); c.fill();
-    c.strokeStyle = f.light; c.lineWidth = 1.5; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(-3.6, -4); c.lineTo(-1.4, 1.6); c.stroke();
-    c.beginPath(); c.moveTo(1.4, 0); c.lineTo(3, 5.4); c.stroke();
+  if(kind === 0){                       /* 胡萝卜：最细最长的锥形 */
+    glossyLeaf(c, -4.6, -13.4, 3.2, 5.4, -0.5, f);
+    glossyLeaf(c, 4.6, -13.4, 3.2, 5.4, 0.5, f);
+    glossFill(c, carrotPath, f);
+    rimLight(c, carrotPath, 'rgba(255,255,255,.22)', 9.5, 7.5);
+    /* 萝卜特有的横向根纹 */
+    c.save();
+    carrotPath(c); c.clip();
+    c.strokeStyle = 'rgba(163,67,16,.5)';
+    c.lineWidth = 1.1; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(-4.2, -2.6); c.quadraticCurveTo(-1.6, -1.6, 0.6, -2.8); c.stroke();
+    c.beginPath(); c.moveTo(-2.4, 2.6); c.quadraticCurveTo(0.4, 3.8, 3, 2.4); c.stroke();
+    c.restore();
+    glossOutline(c, carrotPath, f);
+    shine(c, -3.4, -3.4, 2.2, 3.6, -0.35, 0.8);
 
   } else if(kind === 1){                 /* 白萝卜：最宽的胖柱形，底部收细根 */
-    /* 叶冠先画：米白的身体和底格对比天生就弱，
-       得靠深绿的叶子先把「这是一棵菜」交代清楚 */
-    c.fillStyle = f.leaf;
-    c.beginPath(); c.ellipse(-6.4, -11.4, 3.4, 5, -0.55, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(0, -13.2, 3.4, 5.6, 0, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(6.4, -11.4, 3.4, 5, 0.55, 0, Math.PI * 2); c.fill();
-
-    daikonPath(c); c.fillStyle = f.main; c.fill();
+    /* 叶冠先画：米白身体对比弱，靠深绿叶子先交代「这是一棵菜」 */
+    glossyLeaf(c, -6.4, -11.4, 3.4, 5, -0.55, f);
+    glossyLeaf(c, 0, -13.2, 3.4, 5.6, 0, f);
+    glossyLeaf(c, 6.4, -11.4, 3.4, 5, 0.55, f);
+    glossFill(c, daikonPath, f);
     c.save();
     daikonPath(c); c.clip();
-    /* 萝卜特有的横向根纹 —— 这一条是把它和「空着的格子」分开的关键 */
-    c.strokeStyle = 'rgba(186,158,112,.62)'; c.lineWidth = 1.1;
+    c.strokeStyle = 'rgba(156,123,74,.5)';
+    c.lineWidth = 1.1;
     [-1.5, 3.6, 8.7].forEach(function(y){
       c.beginPath(); c.moveTo(-11, y); c.quadraticCurveTo(0, y + 2.2, 11, y); c.stroke();
     });
-    c.fillStyle = 'rgba(255,255,255,.8)';
-    c.beginPath(); c.ellipse(-5, -1, 2.8, 6.5, 0.14, 0, Math.PI * 2); c.fill();
     c.restore();
-    daikonPath(c); c.strokeStyle = f.dark; c.lineWidth = 1.8; c.stroke();
+    rimLight(c, daikonPath, 'rgba(255,255,255,.45)', 13, 11);
+    glossOutline(c, daikonPath, f, 2.2);
+    shine(c, -5, -2, 2.6, 5.6, 0.12, 0.9);
 
   } else if(kind === 2){                 /* 紫萝卜：上宽下尖的水滴 + 白尖 */
-    c.fillStyle = f.main;
-    c.beginPath();
-    c.moveTo(0, 14);
-    c.bezierCurveTo(-11.5, 6, -12, -7.5, 0, -9.5);
-    c.bezierCurveTo(12, -7.5, 11.5, 6, 0, 14);
-    c.closePath(); c.fill();
+    glossyLeaf(c, -3.2, -11.6, 2.9, 4.2, -0.35, f);
+    glossyLeaf(c, 3.2, -11.6, 2.9, 4.2, 0.35, f);
+    glossFill(c, dropPath, f);
     c.save();
-    c.clip();
-    c.fillStyle = '#FBF5EA';             /* 根部白尖 */
-    c.fillRect(-14, 7.5, 28, 9);
+    dropPath(c); c.clip();
+    c.fillStyle = '#FDF8EC';
+    c.fillRect(-14, 8.2, 28, 9);
     c.restore();
-    c.fillStyle = 'rgba(255,255,255,.32)';
-    c.beginPath(); c.ellipse(-4.4, -3, 3.4, 2.4, -0.5, 0, Math.PI * 2); c.fill();
-    c.fillStyle = f.leaf;
-    c.beginPath(); c.ellipse(-3.2, -11.6, 2.9, 4.2, -0.35, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(3.2, -11.6, 2.9, 4.2, 0.35, 0, Math.PI * 2); c.fill();
+    glossOutline(c, dropPath, f);
+    shine(c, -4.2, -2.6, 2.6, 4.2, -0.4, 0.8);
 
-  } else if(kind === 3){                 /* 青萝卜：最宽最矮的扁圆蛋形 + 两片圆叶 */
-    c.fillStyle = f.leaf;
-    c.beginPath(); c.ellipse(-6, -9.6, 4.6, 4.2, -0.55, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(6, -9.6, 4.6, 4.2, 0.55, 0, Math.PI * 2); c.fill();
-    c.fillStyle = f.main;
-    c.beginPath(); c.ellipse(0, 2.5, 12.4, 10.6, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.3)';
-    c.beginPath(); c.ellipse(-4.2, -1.4, 4.4, 2.8, -0.5, 0, Math.PI * 2); c.fill();
-    c.strokeStyle = f.dark; c.lineWidth = 1.2; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(-6.6, 2.4); c.lineTo(-5.2, 6.4); c.stroke();
-    c.beginPath(); c.moveTo(0.6, 4.6); c.lineTo(2.2, 8.4); c.stroke();
+  } else if(kind === 3){                 /* 青萝卜：最宽最矮的扁圆蛋形 */
+    glossyLeaf(c, -6, -9.6, 4.6, 4.2, -0.55, f);
+    glossyLeaf(c, 6, -9.6, 4.6, 4.2, 0.55, f);
+    glossFill(c, eggPath, f);
+    rimLight(c, eggPath, 'rgba(255,255,255,.3)', 11.8, 11);
+    glossOutline(c, eggPath, f);
+    c.strokeStyle = 'rgba(52,105,28,.45)';
+    c.lineWidth = 1.2; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(-6.6, 3.4); c.lineTo(-5.2, 7.2); c.stroke();
+    c.beginPath(); c.moveTo(0.6, 5.6); c.lineTo(2.2, 9.4); c.stroke();
+    shine(c, -4.6, -2, 3.6, 2.4, -0.5, 0.8);
 
-  } else {                               /* 樱桃萝卜：最小的小球 + 细长小尾 + 两片大叶 */
-    c.fillStyle = f.leaf;
-    c.beginPath(); c.ellipse(-4.4, -10.2, 4.4, 5.4, -0.5, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(4.4, -10.2, 4.4, 5.4, 0.5, 0, Math.PI * 2); c.fill();
-    c.strokeStyle = f.dark; c.lineWidth = 2.6; c.lineCap = 'round';
+  } else {                               /* 樱桃萝卜：小球 + 细长小尾 + 两片大叶 */
+    glossyLeaf(c, -4.4, -10.2, 4.4, 5.4, -0.5, f);
+    glossyLeaf(c, 4.4, -10.2, 4.4, 5.4, 0.5, f);
+    c.strokeStyle = f.line;
+    c.lineWidth = 2.6; c.lineCap = 'round';
     c.beginPath(); c.moveTo(0, 8); c.quadraticCurveTo(1.6, 12, 0, 14); c.stroke();
-    c.fillStyle = f.main;
-    c.beginPath(); c.arc(0, -0.4, 10.2, 0, Math.PI * 2); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.45)';
-    c.beginPath(); c.ellipse(-3.6, -4, 3.4, 2.2, -0.6, 0, Math.PI * 2); c.fill();
+    glossFill(c, ballPath, f);
+    rimLight(c, ballPath, 'rgba(255,255,255,.28)', 8.8, 9.2);
+    glossOutline(c, ballPath, f);
+    shine(c, -3.4, -4, 2.6, 1.8, -0.6, 0.9);
+    shine(c, 1.8, -6.4, 1, 1, 0, 0.7);
   }
   c.restore();
 }
@@ -2280,7 +2360,7 @@ window.__closet = {
   startRound: startRound,
   takeHarvest: takeRoundHarvest,
   /* 棋子配色：给人眼可辨性做自动化校验用 */
-  palette: function(){ return FRUIT.map(function(f){ return { main:f.main, dark:f.dark, pop:f.pop || f.main }; }); },
+  palette: function(){ return FRUIT.map(function(f){ return { main:f.main, dark:f.dark, line:f.line, pop:f.pop || f.main }; }); },
   energy: function(){ return { used: S.energyAdUsed || 0, max: ENERGY_AD_MAX, add: ENERGY_AD }; },
   tickBuddy: function(dt){ resizeBuddy(); drawBuddy(dt || 1 / 60); return BW + 'x' + BH; },
   closeSheet: closeSheet,
