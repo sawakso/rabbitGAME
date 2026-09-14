@@ -1,18 +1,24 @@
 # 工具内部工作目录
 .workbuddy/
 
-# 早期版本：内容是包裹 HTML 的 Python 脚本，浏览器打开只会显示源码，不入库
+# 早期文件：内容是包裹 HTML 的 Python 脚本，浏览器打开只会显示源码，不入库
 最后一格.html
 最后一格V2.html
 V3.html
 
-# 其它会话产出的测试与截图为本地留存，暂不入库
+# 已改造成 games/lastcell.html，这份是重构前的旧副本，留本地存档
+最后一格V3.html
+
+# 其它会话产出的测试与截图
 tests/
 shots/
 
-# 根目录下的重复截图（preview/ 里已有 ASCII 命名的同名副本）
+# 根目录下的重复截图（preview/ 里已有）
 V3-预览截图.png
 V3-教程截图.png
+
+# 临时截图宿主页
+_shot.html
 
 # 操作系统 / 编辑器
 .DS_Store

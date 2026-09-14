@@ -1,0 +1,137 @@
+/* ============================================================
+   Theme —— 大厅与所有小游戏共用的基础层
+   包含：设计变量、暖色黄昏背景、通用按钮 / 弹层 / 开关
+   背景 DOM 由 shared/theme.js 注入，页面只需 include 两个文件。
+   ============================================================ */
+
+:root{
+  --cream:#FFFBF3;
+  --paper:#FFFDF8;
+  --sand:#F3E3D0;
+  --ink:#5A4B42;
+  --ink2:#94806E;
+  --ink3:#B7A493;
+  --line:#E3D2BE;
+  --pink:#E68B9C;
+  --pink-d:#C4697B;
+  --gold:#E8C46A;
+  --mint:#7FC8A9;
+  --sky:#8FB8E0;
+  --radius:20px;
+  --tap:rgba(176,144,116,.20);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;min-height:100%;overscroll-behavior:none;
+  background:linear-gradient(180deg,#FFFBF2 0%,#FEF1DE 34%,#FBE0C4 66%,#F4CFAF 100%)}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+button{font-family:inherit}
+
+/* ---------- 背景 ---------- */
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  background:linear-gradient(180deg,#FFFBF2 0%,#FEF1DE 34%,#FBE0C4 66%,#F4CFAF 100%)}
+.bg .sun{position:absolute;left:50%;top:-3%;width:230px;height:230px;margin-left:-115px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,232,175,.95) 0%,rgba(255,221,150,.42) 40%,rgba(255,221,150,0) 68%);
+  animation:sunPulse 9s ease-in-out infinite}
+@keyframes sunPulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.08);opacity:1}}
+.bg .cloud{position:absolute;background:#FFFEFB;border-radius:999px;opacity:.9;
+  box-shadow:0 5px 0 rgba(226,196,166,.28) inset;animation:sway 26s ease-in-out infinite}
+.bg .cloud:before,.bg .cloud:after{content:"";position:absolute;background:#FFFEFB;border-radius:50%}
+.bg .cloud:before{width:58%;height:152%;left:7%;top:-64%}
+.bg .cloud:after{width:42%;height:120%;right:11%;top:-42%}
+.bg .c1{width:116px;height:32px;left:6%;top:7%;animation-duration:26s}
+.bg .c2{width:86px;height:24px;left:63%;top:16%;animation-duration:34s;animation-delay:-9s;opacity:.7}
+.bg .c3{width:140px;height:38px;left:30%;top:27%;animation-duration:41s;animation-delay:-20s;opacity:.5}
+@keyframes sway{0%,100%{transform:translateX(-14px)}50%{transform:translateX(14px)}}
+.bg svg.hills{position:absolute;left:0;bottom:0;width:100%;display:block}
+.bg .motes{position:absolute;inset:0}
+.mote{position:absolute;border-radius:50%;background:#FFF6E0;opacity:.75;
+  box-shadow:0 0 6px rgba(255,236,196,.9);animation:rise linear infinite}
+@keyframes rise{0%{transform:translateY(0) scale(.6);opacity:0}
+  12%{opacity:.85}88%{opacity:.6}100%{transform:translateY(-108vh) scale(1);opacity:0}}
+
+/* ---------- 页面骨架 ---------- */
+.page{position:relative;z-index:1;width:min(100vw,460px);margin:0 auto;min-height:100vh;
+  padding:calc(14px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;align-items:center;gap:11px}
+
+/* ---------- 卡片 / 标题 ---------- */
+.paperCard{position:relative;width:100%;background:rgba(255,253,248,.93);
+  border:2px solid var(--line);border-radius:var(--radius);
+  box-shadow:4px 5px 0 var(--tap),0 10px 26px rgba(150,118,92,.13)}
+.tape{position:absolute;width:64px;height:20px;background:rgba(246,214,178,.72);
+  border:1px dashed rgba(190,152,116,.5);top:-11px;left:50%;margin-left:-32px;
+  transform:rotate(-2.5deg);border-radius:3px}
+
+/* ---------- 通用按钮 ---------- */
+.btn{border:1.5px solid #C9AE93;border-radius:999px;padding:11px 18px;background:rgba(255,253,248,.95);
+  color:#6B5648;font-size:14px;font-weight:600;cursor:pointer;
+  box-shadow:3px 3px 0 var(--tap);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--tap)}
+.btn[disabled]{opacity:.4;box-shadow:none;cursor:default}
+.btn.primary{background:linear-gradient(180deg,#F2A0B0,var(--pink));
+  border-color:var(--pink-d);color:#fff;box-shadow:3px 3px 0 rgba(196,105,123,.35)}
+.btnRow{width:100%;display:flex;gap:9px}
+.btnRow .btn{flex:1}
+
+/* 小圆角方形返回键，放在游戏页左上角 */
+.backBtn{position:fixed;z-index:12;left:calc(9px + env(safe-area-inset-left));
+  top:calc(9px + env(safe-area-inset-top));width:36px;height:36px;padding:0;
+  display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;
+  padding-bottom:3px;
+  border:1.5px solid #C9AE93;border-radius:13px;background:rgba(255,253,248,.94);
+  color:#7A6353;box-shadow:2px 3px 0 var(--tap);cursor:pointer}
+.backBtn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--tap)}
+
+/* ---------- 底部开关条 ---------- */
+.toggles{width:100%;display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+.tg{border:1.5px solid var(--line);background:rgba(255,253,248,.8);border-radius:999px;
+  padding:6px 12px;font-size:11.5px;color:var(--ink3);cursor:pointer}
+.tg.on{color:#B07A88;border-color:#EBCBD2;background:rgba(255,240,242,.95)}
+
+/* ---------- 弹层 ---------- */
+.overlay{position:fixed;inset:0;z-index:30;background:rgba(88,66,54,.42);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  animation:fadeIn .22s ease-out}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.panel{width:min(92vw,370px);max-height:88vh;overflow-y:auto;background:var(--paper);
+  border:2px solid var(--line);border-radius:22px;padding:20px 20px 18px;text-align:center;
+  box-shadow:6px 7px 0 var(--tap),0 20px 50px rgba(120,92,70,.25);
+  transform:rotate(-.4deg);animation:panelIn .3s cubic-bezier(.2,1.3,.4,1)}
+@keyframes panelIn{from{transform:rotate(-.4deg) scale(.9);opacity:0}
+  to{transform:rotate(-.4deg) scale(1);opacity:1}}
+.panel h2{margin:2px 0 10px;font-size:21px;color:#4E3E36;letter-spacing:1px}
+.panel p{margin:7px 0;font-size:13px;color:#7C6A5C;line-height:1.7}
+.panel p.sm{font-size:11.5px;color:var(--ink3)}
+.hide{display:none!important}
+
+/* 兔子角色容器 */
+.bunnyBox svg{width:100%;height:auto;display:block}
+.bunnyTop{width:76px;margin:0 auto 2px}
+
+/* 结果统计三宫格 */
+.resultRow{display:flex;gap:9px;margin:14px 0 6px}
+.resultRow .box{flex:1;background:#FCF4E9;border:1.5px solid var(--line);border-radius:13px;padding:9px 4px}
+.resultRow small{display:block;font-size:10.5px;color:var(--ink3)}
+.resultRow b{font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+.newBest{display:inline-block;margin-top:6px;font-size:11px;color:#B07A58;background:#FBE7D4;
+  border-radius:999px;padding:3px 11px}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---------- 小屏 / 矮屏压缩间距 ---------- */
+@media (max-height: 840px){
+  .page{gap:8px;padding-top:calc(10px + env(safe-area-inset-top));
+    padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .btn{padding:9px 16px;font-size:13.5px}
+  .tg{padding:5px 10px}
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important}
+}

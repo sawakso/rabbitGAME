@@ -4,58 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#FDF3E5">
-<title>最后一格</title>
+<title>最后一格 · 兔子小游戏</title>
+<link rel="stylesheet" href="../shared/theme.css">
 <style>
-:root{
-  --cream:#FFFBF3;
-  --paper:#FFFDF8;
-  --sand:#F3E3D0;
-  --ink:#5A4B42;
-  --ink2:#94806E;
-  --ink3:#B7A493;
-  --line:#E3D2BE;
-  --pink:#E68B9C;
-  --pink-d:#C4697B;
-  --gold:#E8C46A;
-  --sky1:#FFF7EC;
-  --sky2:#FBE6CF;
-  --sky3:#F5D6BC;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;height:100%;overscroll-behavior:none;background:var(--sky3)}
-body{
-  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
-  color:var(--ink);
-  -webkit-font-smoothing:antialiased;
-  overflow-x:hidden;
-}
-
-/* ========== 背景：暖色黄昏 + 云 + 远山 + 光点 ========== */
-.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
-  background:linear-gradient(180deg,#FFFBF2 0%,#FEF1DE 34%,#FBE0C4 66%,#F4CFAF 100%)}
-.bg .sun{position:absolute;left:50%;top:-3%;width:230px;height:230px;margin-left:-115px;border-radius:50%;
-  background:radial-gradient(circle,rgba(255,232,175,.95) 0%,rgba(255,221,150,.42) 40%,rgba(255,221,150,0) 68%);
-  animation:sunPulse 9s ease-in-out infinite}
-@keyframes sunPulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.08);opacity:1}}
-.bg .cloud{position:absolute;background:#FFFEFB;border-radius:999px;opacity:.9;
-  box-shadow:0 5px 0 rgba(226,196,166,.28) inset;animation:sway 26s ease-in-out infinite}
-.bg .cloud:before,.bg .cloud:after{content:"";position:absolute;background:#FFFEFB;border-radius:50%}
-.bg .cloud:before{width:58%;height:152%;left:7%;top:-64%}
-.bg .cloud:after{width:42%;height:120%;right:11%;top:-42%}
-.bg .c1{width:116px;height:32px;left:6%;top:7%;animation-duration:26s}
-.bg .c2{width:86px;height:24px;left:63%;top:16%;animation-duration:34s;animation-delay:-9s;opacity:.7}
-.bg .c3{width:140px;height:38px;left:30%;top:27%;animation-duration:41s;animation-delay:-20s;opacity:.5}
-@keyframes sway{0%,100%{transform:translateX(-14px)}50%{transform:translateX(14px)}}
-.bg svg{position:absolute;left:0;bottom:0;width:100%;display:block}
-.bg .motes{position:absolute;inset:0}
-.mote{position:absolute;border-radius:50%;background:#FFF6E0;opacity:.75;
-  box-shadow:0 0 6px rgba(255,236,196,.9);animation:rise linear infinite}
-@keyframes rise{0%{transform:translateY(0) scale(.6);opacity:0}
-  12%{opacity:.85}88%{opacity:.6}100%{transform:translateY(-108vh) scale(1);opacity:0}}
+/* 设计变量、暖色黄昏背景、通用按钮/弹层/开关都在 ../shared/theme.css 里，
+   这里只放《最后一格》自己的样式。 */
 
 /* ========== 布局 ========== */
 .game{position:relative;z-index:1;width:min(100vw,460px);margin:0 auto;min-height:100%;
-  padding:calc(14px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+  padding:calc(48px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
   display:flex;flex-direction:column;align-items:center;gap:11px}
 
 /* ========== 顶部标题卡 ========== */
@@ -160,9 +117,10 @@ body{
 .tg.on{color:#B07A88;border-color:#EBCBD2;background:rgba(255,240,242,.95)}
 .footer{margin-top:2px;font-size:10px;color:#C0AC99;letter-spacing:1.6px}
 
-/* 矮屏（小屏安卓、微信小游戏常见）压缩纵向间距，保证一屏放得下 */
+/* 矮屏（小屏安卓、微信小游戏常见）压缩纵向间距，保证一屏放得下。
+   注意 padding-top 要保留返回键的位置，不能被压掉。 */
 @media (max-height: 840px){
-  .game{gap:8px;padding-top:calc(10px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .game{gap:8px;padding-top:calc(44px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
   .card{padding:10px 18px 9px}
   .title{font-size:22px;letter-spacing:2px}
   .hint{font-size:11px}
@@ -224,23 +182,7 @@ body{
 </head>
 <body>
 
-<div class="bg" id="bg">
-  <div class="sun"></div>
-  <div class="cloud c1"></div>
-  <div class="cloud c2"></div>
-  <div class="cloud c3"></div>
-  <div class="motes" id="motes"></div>
-  <svg viewBox="0 0 400 170" preserveAspectRatio="none" style="height:34%">
-    <path d="M0,92 C46,56 84,70 124,52 C168,32 200,62 242,48 C288,32 328,58 400,42 L400,170 L0,170 Z" fill="#E4C39F"/>
-    <path d="M0,116 C54,92 100,108 146,90 C196,70 238,100 288,88 C334,78 366,94 400,82 L400,170 L0,170 Z" fill="#D9B189" opacity=".92"/>
-    <path d="M0,142 C60,124 110,138 162,124 C216,110 262,132 320,122 C356,116 380,124 400,118 L400,170 L0,170 Z" fill="#CB9F76"/>
-    <g fill="#C1916A" opacity=".55">
-      <path d="M52,126 l9,-24 l9,24 z M44,126 l17,-38 l17,38 z"/>
-      <path d="M292,132 l7,-19 l7,19 z M285,132 l14,-30 l14,30 z"/>
-      <path d="M188,124 l6,-16 l6,16 z M182,124 l12,-26 l12,26 z"/>
-    </g>
-  </svg>
-</div>
+<a class="backBtn" href="../index.html" aria-label="返回游戏大厅">‹</a>
 
 <div class="game">
   <div class="card">
@@ -281,7 +223,7 @@ body{
     <button class="tg" id="tgGuide">? 玩法</button>
   </div>
 
-  <div class="footer">✦ 微信小游戏 · 竖屏单文件版 ✦</div>
+  <div class="footer">✦ 最后一格 · 兔子小游戏 ✦</div>
 </div>
 
 <div class="overlay hide" id="ovGuide">
@@ -334,6 +276,10 @@ body{
 
 <div class="confetti hide" id="confetti"></div>
 
+<script src="../shared/store.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/bunny.js"></script>
+<script src="../shared/theme.js"></script>
 <script>
 (function(){
 'use strict';
@@ -366,11 +312,12 @@ var DIFFS = {
   hard:   { size:8, wall:0.16, goal:30, name:'挑战', undo:2, hint:2 }
 };
 
-var STORE_KEY = 'lastCell.v3';
-
 /* ============================================================
    2. 状态
+   存档统一交给 ../shared/store.js 管理，游戏 id 是 lastcell
    ============================================================ */
+var GAME_ID = 'lastcell';
+
 var G = {
   diff:'normal', size:8, wall:0.10, goal:26,
   blocked:new Set(), visited:new Set(), path:[], step:0,
@@ -378,26 +325,12 @@ var G = {
   undoLeft:3, hintLeft:3, daily:false, dailyLabel:'',
   showSpace:true, started:false
 };
-var prefs = { music:true, sfx:true, space:true, seenGuide:false, best:{} };
 
-function savePrefs(){
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(prefs)); }catch(e){}
-}
-function loadPrefs(){
-  try{
-    var raw = localStorage.getItem(STORE_KEY);
-    if(raw){
-      var o = JSON.parse(raw);
-      if(o && typeof o === 'object'){
-        if(typeof o.music === 'boolean') prefs.music = o.music;
-        if(typeof o.sfx   === 'boolean') prefs.sfx   = o.sfx;
-        if(typeof o.space === 'boolean') prefs.space = o.space;
-        if(typeof o.seenGuide === 'boolean') prefs.seenGuide = o.seenGuide;
-        if(o.best && typeof o.best === 'object') prefs.best = o.best;
-      }
-    }
-  }catch(e){}
-}
+/* 所有开关统一读写全局存档（../shared/store.js） */
+var prefs = {
+  get space(){ return Store.get('space', true); },
+  set space(v){ Store.set('space', !!v); }
+};
 
 function keyOf(r,c){ return r * 100 + c; }
 function inside(r,c){ return r>=0 && r<G.size && c>=0 && c<G.size; }
@@ -494,219 +427,13 @@ function isLegal(cell){
    5. 音频：程序化生成的温馨八音盒
    —— 零素材、无版权、断网可用，适合小游戏包体
    ============================================================ */
-var Audio1 = (function(){
-  var ctx = null, master = null, musicBus = null, sfxBus = null;
-  var delayNode = null, fbGain = null, wetGain = null;
-  var timer = null, stepIdx = 0, nextTime = 0, running = false;
-  var musicOn = true, sfxOn = true;
-
-  var BPM = 62;
-  var EIGHTH = 60 / BPM / 2;        /* 一个八分音符的秒数 */
-  var BARS = 4, PER_BAR = 8, TOTAL = BARS * PER_BAR;
-
-  /* C - G - Am - F ，温暖的大调走向 */
-  var PROG = [
-    { root:'C3', pad:['C4','E4','G4'], mel:['E5','G5','C6','G5'] },
-    { root:'G2', pad:['G3','B3','D4'], mel:['D5','G5','B5','G5'] },
-    { root:'A2', pad:['A3','C4','E4'], mel:['E5','A5','C6','A5'] },
-    { root:'F2', pad:['F3','A3','C4'], mel:['F5','A5','C6','A5'] }
-  ];
-  var SEMI = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-  function hz(name){
-    var m = /^([A-G])(#|b)?(-?\d+)$/.exec(name);
-    if(!m) return 440;
-    var s = SEMI[m[1]] + (m[2]==='#'?1:m[2]==='b'?-1:0);
-    var midi = (parseInt(m[3],10)+1)*12 + s;
-    return 440 * Math.pow(2,(midi-69)/12);
-  }
-
-  function ensure(){
-    if(ctx) { if(ctx.state === 'suspended') ctx.resume(); return; }
-    var AC = window.AudioContext || window.webkitAudioContext;
-    if(!AC) return;
-    ctx = new AC();
-    master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-
-    musicBus = ctx.createGain(); musicBus.gain.value = 0.5;
-    sfxBus = ctx.createGain();   sfxBus.gain.value = 0.55;
-    musicBus.connect(master); sfxBus.connect(master);
-
-    /* 轻混响（用延迟+反馈近似） */
-    delayNode = ctx.createDelay(1.5); delayNode.delayTime.value = 0.33;
-    fbGain = ctx.createGain(); fbGain.gain.value = 0.24;
-    wetGain = ctx.createGain(); wetGain.gain.value = 0.26;
-    delayNode.connect(fbGain); fbGain.connect(delayNode);
-    delayNode.connect(wetGain); wetGain.connect(master);
-  }
-
-  /* 八音盒音色：正弦基音 + 高八度泛音，快起慢落 */
-  function bell(f, t, vol, dest){
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = 'sine'; o.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
-    o.connect(g); g.connect(dest); g.connect(delayNode);
-    o.start(t); o.stop(t + 1.7);
-
-    var o2 = ctx.createOscillator(), g2 = ctx.createGain();
-    o2.type = 'sine'; o2.frequency.value = f * 2;
-    g2.gain.setValueAtTime(0.0001, t);
-    g2.gain.exponentialRampToValueAtTime(vol * 0.26, t + 0.008);
-    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
-    o2.connect(g2); g2.connect(dest);
-    o2.start(t); o2.stop(t + 0.9);
-  }
-  function padNote(f, t, dur, vol){
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = 'triangle'; o.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(vol, t + 0.9);
-    g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(musicBus);
-    o.start(t); o.stop(t + dur + 0.06);
-  }
-  function bass(f, t, dur, vol){
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = 'sine'; o.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(vol, t + 0.05);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(musicBus);
-    o.start(t); o.stop(t + dur + 0.05);
-  }
-
-  function playStep(i, t){
-    var bar = Math.floor(i / PER_BAR) % BARS;
-    var pos = i % PER_BAR;
-    var P = PROG[bar];
-
-    if(pos === 0){
-      for(var k=0;k<P.pad.length;k++) padNote(hz(P.pad[k]), t, EIGHTH*PER_BAR*0.95, 0.020);
-      bass(hz(P.root), t, 1.8, 0.050);
-    }
-    if(pos === 4) bass(hz(P.root), t, 1.4, 0.034);
-
-    /* 旋律：每两个八分音符落一个音，偶尔留白让它呼吸 */
-    if(pos % 2 === 0){
-      if(Math.random() < 0.88) bell(hz(P.mel[(pos/2) % 4]), t, 0.115, musicBus);
-    } else if(pos === 3 || pos === 7){
-      if(Math.random() < 0.22) bell(hz(P.mel[0]) * 2, t, 0.045, musicBus);
-    }
-  }
-
-  function tick(){
-    if(!ctx || !running) return;
-    while(nextTime < ctx.currentTime + 0.3){
-      playStep(stepIdx, nextTime);
-      stepIdx = (stepIdx + 1) % TOTAL;
-      nextTime += EIGHTH;
-    }
-  }
-
-  function startMusic(){
-    ensure(); if(!ctx || !musicOn || running) return;
-    running = true;
-    nextTime = ctx.currentTime + 0.08;
-    tick();
-    timer = setInterval(tick, 60);
-  }
-  function stopMusic(){
-    running = false;
-    if(timer){ clearInterval(timer); timer = null; }
-  }
-
-  /* ---- 音效 ---- */
-  var SCALE = [0,2,4,7,9];   /* 五声音阶，走子音高随步数上行，越走越亮 */
-  function blip(freq, t, vol, dur, type){
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type || 'sine'; o.frequency.value = freq;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(sfxBus);
-    o.start(t); o.stop(t + dur + 0.03);
-  }
-  function sfx(name, step){
-    if(!sfxOn) return; ensure(); if(!ctx) return;
-    var t = ctx.currentTime + 0.005;
-    if(name === 'move'){
-      var deg = SCALE[(step-1) % SCALE.length];
-      var oct = 5 + Math.floor(((step-1) % (SCALE.length*3)) / SCALE.length);
-      var midi = (oct+1)*12 + deg;
-      var f = 440 * Math.pow(2,(midi-69)/12);
-      blip(f, t, 0.10, 0.55);
-    } else if(name === 'bad'){
-      blip(196, t, 0.085, 0.18, 'triangle');
-      blip(147, t + 0.09, 0.07, 0.24, 'triangle');
-    } else if(name === 'win'){
-      [0,4,7,12,16].forEach(function(s,i){
-        var midi = (6+1)*12 + s;
-        blip(440 * Math.pow(2,(midi-69)/12), t + i*0.1, 0.10, 0.9);
-      });
-    } else if(name === 'lose'){
-      [0,-3,-7].forEach(function(s,i){
-        var midi = (5+1)*12 + s;
-        blip(440 * Math.pow(2,(midi-69)/12), t + i*0.13, 0.075, 0.7, 'triangle');
-      });
-    } else if(name === 'ui'){
-      blip(660, t, 0.05, 0.14);
-    } else if(name === 'undo'){
-      blip(520, t, 0.06, 0.2, 'triangle');
-      blip(390, t + 0.07, 0.05, 0.22, 'triangle');
-    }
-  }
-
-  return {
-    unlock: function(){ ensure(); if(prefs.music) startMusic(); },
-    setMusic: function(on){ musicOn = on; if(on) startMusic(); else stopMusic(); },
-    setSfx: function(on){ sfxOn = on; },
-    sfx: sfx,
-    pause: function(){ stopMusic(); },
-    resume: function(){ if(prefs.music) startMusic(); }
-  };
-})();
+/* 音频引擎已抽到 ../shared/audio.js，通过全局 GameAudio 调用 */
 
 /* ============================================================
    6. 兔子角色（纯 SVG 绘制，随状态换表情）
    ============================================================ */
-function bunnySVG(mood, uid){
-  var earL = '<ellipse cx="-7.5" cy="-25" rx="4.6" ry="13.5" transform="rotate(-11 -7.5 -25)" fill="#FFF7EE" stroke="#E8D5C2" stroke-width="1.4"/>' +
-             '<ellipse cx="-7.5" cy="-24.5" rx="2.1" ry="8.6" transform="rotate(-11 -7.5 -24.5)" fill="#F7C6CE"/>';
-  var earR = '<ellipse cx="7.5" cy="-25" rx="4.6" ry="13.5" transform="rotate(11 7.5 -25)" fill="#FFF7EE" stroke="#E8D5C2" stroke-width="1.4"/>' +
-             '<ellipse cx="7.5" cy="-24.5" rx="2.1" ry="8.6" transform="rotate(11 7.5 -24.5)" fill="#F7C6CE"/>';
-  var eyes, mouth;
-  if(mood === 'happy'){
-    eyes = '<path d="M-11.5 0 q3.4 -5 6.8 0" fill="none" stroke="#5A4B42" stroke-width="2.1" stroke-linecap="round"/>' +
-           '<path d="M4.7 0 q3.4 -5 6.8 0" fill="none" stroke="#5A4B42" stroke-width="2.1" stroke-linecap="round"/>';
-    mouth = '<path d="M-3.6 7.2 q3.6 4.4 7.2 0" fill="none" stroke="#B98591" stroke-width="1.7" stroke-linecap="round"/>';
-  } else if(mood === 'worry'){
-    eyes = '<circle cx="-8" cy="0" r="3.4" fill="none" stroke="#5A4B42" stroke-width="1.9"/>' +
-           '<circle cx="8" cy="0" r="3.4" fill="none" stroke="#5A4B42" stroke-width="1.9"/>' +
-           '<circle cx="-8" cy="0" r="1.3" fill="#5A4B42"/><circle cx="8" cy="0" r="1.3" fill="#5A4B42"/>';
-    mouth = '<path d="M-3.4 8 q3.4 -3 6.8 0" fill="none" stroke="#B98591" stroke-width="1.7" stroke-linecap="round"/>';
-  } else if(mood === 'sad'){
-    eyes = '<path d="M-11.5 1.5 q3.4 5 6.8 0" fill="none" stroke="#5A4B42" stroke-width="2.1" stroke-linecap="round"/>' +
-           '<path d="M4.7 1.5 q3.4 5 6.8 0" fill="none" stroke="#5A4B42" stroke-width="2.1" stroke-linecap="round"/>' +
-           '<path d="M3 4 q1 5 2.4 6.4" fill="none" stroke="#9ED0E4" stroke-width="1.6" stroke-linecap="round"/>';
-    mouth = '<path d="M-3.4 8 q3.4 -3 6.8 0" fill="none" stroke="#B98591" stroke-width="1.7" stroke-linecap="round"/>';
-  } else {
-    eyes = '<circle cx="-8" cy="0" r="3.1" fill="#5A4B42"/><circle cx="8" cy="0" r="3.1" fill="#5A4B42"/>' +
-           '<circle cx="-6.9" cy="-1.2" r="1.05" fill="#fff"/><circle cx="9.1" cy="-1.2" r="1.05" fill="#fff"/>';
-    mouth = '<path d="M-3.4 7.4 q3.4 3.6 6.8 0" fill="none" stroke="#B98591" stroke-width="1.7" stroke-linecap="round"/>';
-  }
-  return '<svg viewBox="-24 -42 48 58" xmlns="http://www.w3.org/2000/svg" class="bunH">' +
-    '<g id="bun-' + uid + '">' +
-      earL + earR +
-      '<circle cx="0" cy="0" r="16" fill="#FFF9F2" stroke="#E8D5C2" stroke-width="1.5"/>' +
-      '<ellipse cx="-10" cy="5.2" rx="3.6" ry="2.3" fill="#F9C8D0" opacity=".82"/>' +
-      '<ellipse cx="10" cy="5.2" rx="3.6" ry="2.3" fill="#F9C8D0" opacity=".82"/>' +
-      eyes +
-      '<ellipse cx="0" cy="3.4" rx="1.9" ry="1.4" fill="#E9A0AC"/>' +
-      mouth +
-    '</g></svg>';
-}
-var MOODS = { idle:'idle', happy:'happy', worry:'worry', sad:'sad' };
+/* 兔子角色统一来自 ../shared/bunny.js */
+function bunnySVG(mood, uid){ return Bunny.svg(mood, uid); }
 
 /* ============================================================
    7. 渲染
@@ -848,7 +575,7 @@ function onClickCell(e){
   var k = keyOf(r,c);
   if(G.blocked.has(k) || G.visited.has(k)) return;
 
-  Audio1.unlock();
+  GameAudio.unlock();
 
   /* 第一步：任意落子 */
   if(!G.path.length){
@@ -856,7 +583,7 @@ function onClickCell(e){
     G.visited.add(k);
     G.step = 1;
     G.started = true;
-    Audio1.sfx('move', 1);
+    GameAudio.sfx('move', 1);
     setMood('idle');
     say('落子成功！点黄色格子继续');
     render({r:r,c:c});
@@ -864,7 +591,7 @@ function onClickCell(e){
   }
 
   if(!isLegal({r:r,c:c})){
-    Audio1.sfx('bad');
+    GameAudio.sfx('bad');
     var el = e.currentTarget;
     el.classList.add('shake');
     setTimeout(function(){ el.classList.remove('shake'); }, 210);
@@ -876,14 +603,14 @@ function onClickCell(e){
   G.path.push({r:r,c:c});
   G.visited.add(k);
   G.step++;
-  Audio1.sfx('move', G.step);
+  GameAudio.sfx('move', G.step);
 
   /* 通关 */
   if(G.step >= G.goal){
     G.over = true; G.won = true;
     setMood('happy');
     say('通关！你走到了最后一格 ✦');
-    Audio1.sfx('win');
+    GameAudio.sfx('win');
     render({r:r,c:c});
     setTimeout(function(){ showResult(true); }, 420);
     return;
@@ -894,7 +621,7 @@ function onClickCell(e){
     G.over = true; G.won = false;
     setMood('sad');
     say('呜……前面没有路了');
-    Audio1.sfx('lose');
+    GameAudio.sfx('lose');
     render();
     setTimeout(function(){ showResult(false); }, 420);
     return;
@@ -909,7 +636,7 @@ function onClickCell(e){
 
 function doUndo(){
   if(G.undoLeft <= 0 || !G.path.length || G.over) return;
-  Audio1.unlock(); Audio1.sfx('undo');
+  GameAudio.unlock(); GameAudio.sfx('undo');
   var last = G.path.pop();
   G.visited.delete(keyOf(last.r,last.c));
   G.step--;
@@ -925,7 +652,7 @@ function doHint(){
   if(!G.path.length){ say('先随便落一个子吧'); return; }
   var layers = previewLayers();
   if(layers[0].size === 0){ say('真的没有路了……悔棋试试'); return; }
-  Audio1.unlock(); Audio1.sfx('ui');
+  GameAudio.unlock(); GameAudio.sfx('ui');
   var best = null, bestV = -1;
   layers[0].forEach(function(k){
     var r = Math.floor(k/100), c = k % 100;
@@ -976,15 +703,15 @@ function newGame(diff, daily){
   trailEl.innerHTML = '';
 }
 
-function bestKey(){ return G.diff + (G.daily ? ':daily' : ''); }
+function bestKey(){ return G.diff + (G.daily ? '-daily' : ''); }
 
 function showResult(won){
   var key = bestKey();
-  var prev = prefs.best[key] || 0;
+  var prev = Store.best(GAME_ID, key);
   var isNew = won && G.step > prev;
-  if(won && isNew){ prefs.best[key] = G.step; savePrefs(); }
+  if(won && isNew) Store.setBest(GAME_ID, key, G.step);
 
-  var best = prefs.best[key] || 0;
+  var best = Store.best(GAME_ID, key);
 
   $('resTitle').textContent = won ? '通关啦！' : '走进死胡同了';
   $('resDesc').textContent = won
@@ -1025,16 +752,16 @@ function confetti(){
    ============================================================ */
 $('btnUndo').addEventListener('click', doUndo);
 $('btnHint').addEventListener('click', doHint);
-$('btnNew').addEventListener('click', function(){ Audio1.unlock(); Audio1.sfx('ui'); newGame(null, false); });
+$('btnNew').addEventListener('click', function(){ GameAudio.unlock(); GameAudio.sfx('ui'); newGame(null, false); });
 
 $('btnAgain').addEventListener('click', function(){
   $('ovResult').classList.add('hide');
-  Audio1.sfx('ui');
+  GameAudio.sfx('ui');
   newGame(null, G.daily);
 });
 $('btnBack').addEventListener('click', function(){
   $('ovResult').classList.add('hide');
-  Audio1.sfx('ui');
+  GameAudio.sfx('ui');
   $('ovGuide').classList.remove('hide');
 });
 
@@ -1042,47 +769,46 @@ $('btnStart').addEventListener('click', function(){
   var sel = document.querySelector('#guideDiff button.sel');
   var d = sel ? sel.dataset.d : 'normal';
   $('ovGuide').classList.add('hide');
-  prefs.seenGuide = true; savePrefs();
-  Audio1.unlock();
+  Store.markSeen(GAME_ID);
+  GameAudio.unlock();
   newGame(d, false);
 });
 $('btnDaily').addEventListener('click', function(){
   var sel = document.querySelector('#guideDiff button.sel');
   var d = sel ? sel.dataset.d : 'normal';
   $('ovGuide').classList.add('hide');
-  prefs.seenGuide = true; savePrefs();
-  Audio1.unlock();
+  Store.markSeen(GAME_ID);
+  GameAudio.unlock();
   newGame(d, true);
 });
 Array.prototype.forEach.call(document.querySelectorAll('#guideDiff button'), function(b){
   b.addEventListener('click', function(){
     Array.prototype.forEach.call(document.querySelectorAll('#guideDiff button'), function(x){ x.classList.remove('sel'); });
     b.classList.add('sel');
-    Audio1.sfx('ui');
+    GameAudio.sfx('ui');
   });
 });
 
-$('tgGuide').addEventListener('click', function(){ Audio1.sfx('ui'); $('ovGuide').classList.remove('hide'); });
+$('tgGuide').addEventListener('click', function(){ GameAudio.sfx('ui'); $('ovGuide').classList.remove('hide'); });
 $('ovGuide').addEventListener('click', function(e){ if(e.target === $('ovGuide')) $('ovGuide').classList.add('hide'); });
 
 $('tgMusic').addEventListener('click', function(){
-  prefs.music = !prefs.music; savePrefs();
-  this.classList.toggle('on', prefs.music);
-  Audio1.unlock(); Audio1.setMusic(prefs.music);
-  Audio1.sfx('ui');
+  GameAudio.unlock();
+  GameAudio.setMusic(!GameAudio.musicOn());
+  this.classList.toggle('on', GameAudio.musicOn());
+  GameAudio.sfx('ui');
 });
 $('tgSfx').addEventListener('click', function(){
-  prefs.sfx = !prefs.sfx; savePrefs();
-  this.classList.toggle('on', prefs.sfx);
-  Audio1.setSfx(prefs.sfx);
-  Audio1.sfx('ui');
+  GameAudio.unlock();
+  GameAudio.setSfx(!GameAudio.sfxOn());
+  this.classList.toggle('on', GameAudio.sfxOn());
+  GameAudio.sfx('ui');
 });
 $('tgSpace').addEventListener('click', function(){
   prefs.space = !prefs.space;
   G.showSpace = prefs.space;
-  savePrefs();
   this.classList.toggle('on', prefs.space);
-  Audio1.unlock(); Audio1.sfx('ui');
+  GameAudio.sfx('ui');
   render();
 });
 
@@ -1112,48 +838,26 @@ window.addEventListener('resize', function(){
 window.addEventListener('orientationchange', function(){ setTimeout(drawTrail, 260); });
 
 document.addEventListener('visibilitychange', function(){
-  if(document.hidden) Audio1.pause(); else Audio1.resume();
+  if(document.hidden) GameAudio.pause(); else GameAudio.resume();
 });
 
-/* 首次触摸解锁音频（微信 / iOS 必须由用户手势触发） */
-function unlockOnce(){
-  Audio1.unlock();
-  document.removeEventListener('pointerdown', unlockOnce);
-  document.removeEventListener('touchstart', unlockOnce);
-}
-document.addEventListener('pointerdown', unlockOnce);
-document.addEventListener('touchstart', unlockOnce);
 
-/* ============================================================
-   11. 背景粒子
-   ============================================================ */
-(function initMotes(){
-  var box = $('motes'), html = '';
-  for(var i=0;i<16;i++){
-    var size = 2 + Math.random()*4;
-    html += '<span class="mote" style="width:' + size.toFixed(1) + 'px;height:' + size.toFixed(1) +
-            'px;left:' + (Math.random()*100).toFixed(2) + '%;bottom:-8vh;' +
-            'animation-duration:' + (16 + Math.random()*16).toFixed(1) + 's;' +
-            'animation-delay:-' + (Math.random()*20).toFixed(1) + 's"></span>';
-  }
-  box.innerHTML = html;
-})();
 
 /* ============================================================
    12. 启动
    ============================================================ */
-loadPrefs();
 G.showSpace = prefs.space;
-$('tgMusic').classList.toggle('on', prefs.music);
-$('tgSfx').classList.toggle('on', prefs.sfx);
+$('tgMusic').classList.toggle('on', GameAudio.musicOn());
+$('tgSfx').classList.toggle('on', GameAudio.sfxOn());
 $('tgSpace').classList.toggle('on', prefs.space);
-Audio1.setSfx(prefs.sfx);
+GameAudio.autoUnlock();
+Store.play(GAME_ID);
 
 newGame('normal', false);
 
 $('bunnyGuide').innerHTML = bunnySVG('idle', 'guide');
 
-if(!prefs.seenGuide) $('ovGuide').classList.remove('hide');
+if(!Store.seen(GAME_ID)) $('ovGuide').classList.remove('hide');
 else $('ovGuide').classList.add('hide');
 
 })();
