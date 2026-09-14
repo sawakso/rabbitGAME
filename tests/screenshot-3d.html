@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#1d1a17}
+iframe{border:0;display:block}
+#out{color:#9f9;font:11px/1.6 monospace;padding:8px;white-space:pre-wrap}
+</style></head><body>
+<iframe id="f" src="/lab/match3-3d.html"></iframe>
+<div id="out">waiting</div>
+<script>
+/* 截图宿主：?mode=board|hats|allkinds|react & w=480 & h=900 & hat=beret & kinds=1
+   无头环境下 requestAnimationFrame 几乎不跑，所以用 tick() 手动推进，
+   这样截到的画面是确定的。 */
+const q = new URLSearchParams(location.search);
+const mode = q.get('mode') || 'board';
+const W = +(q.get('w') || 480), H = +(q.get('h') || 900);
+const HAT = q.get('hat');
+const f = document.getElementById('f');
+f.width = W; f.height = H;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+(async function(){
+  let w = f.contentWindow;
+  for(let i = 0; i < 600 && !w.__m3d; i++) await sleep(25);
+  if(!w.__m3d){ document.getElementById('out').textContent = '游戏没起来'; return; }
+  const M = w.__m3d;
+
+  /* 让下落动画收敛到静止。第二参数跳过重绘 —— 软件渲染下每帧重绘会把截图拖到几分钟 */
+  function settle(n){
+    for(let i = 0; i < (n || 110); i++) M.tick(1 / 60, true);
+  }
+  settle();
+
+  if(HAT) M.setHat(HAT);
+
+  if(mode === 'allkinds'){
+    /* 前五格各放一个品种，一屏看全 */
+    M.showAllKinds();
+    settle();
+  } else if(mode === 'react'){
+    /* 推到「正在消除」的那一帧：等 clearT 起来，再往前挪一点让飞起动画进行到一半 */
+    for(let i = 0; i < 400; i++){
+      M.tick(1 / 60, true);
+      if(M.state().clearT > 0){ for(let k = 0; k < 5; k++) M.tick(1 / 60, true); break; }
+    }
+  } else if(mode === 'hats'){
+    M.setHat(HAT || 'straw');
+  }
+
+  settle();
+  M.tick(1 / 60);          /* 最后这一下才真正渲染 */
+  const st = M.state();
+  document.getElementById('out').textContent =
+    'RESULT ' + JSON.stringify(st) + '\n' + M.grid().map(r => r.join(' ')).join('\n');
+  document.title = 'SHOT-READY';
+})();
+</script>
+</body></html>

@@ -95,6 +95,23 @@
 
 ---
 
+### 3D 版（进行中）　`lab/match3-3d.html`
+
+姐姐说现在流行 3D，于是做了个 3D 版验证：**还是那个采萝卜三消，棋盘变成一座悬浮小岛**，
+五种萝卜变成真的立体模型，兔子站在前景，穿的就是你在衣橱里配的那一套。
+
+**路线是「程序化几何」：没有任何模型文件，所有物体都用代码算顶点**（Three.js 的基础几何体
+拼装 + Lathe 旋转成型 + flatShading 卡通着色）。这也是参考图那种低多边形 Q 版画风
+最适合的做法——不请建模师、零美术资产、包体只多 150KB。
+
+- `shared/geom3d.js`：可复用的几何库（小岛 / 五种萝卜 / 兔子 / 24 件道具的 3D 版 / 换装）
+- 正交相机：三消要求 42 个格子同样清晰，透视会让后排变小、被前排挡住
+- 已验证：Node 里离屏跑 three.js，几何库有 **62 项离线自检**（尺寸 / 轮廓指纹 / 面朝向 / 配色），
+  配色另有独立核算脚本。轮廓指纹还抓出过「白萝卜和紫萝卜形状几乎一样」「紫萝卜法线朝内」两个真问题
+- 现在是可玩原型（交换 / 匹配 / 掉落 / 连锁都有了），还没接进大厅
+
+---
+
 ## 上架前必须知道的事
 
 **这两个游戏都只能走「纯广告变现（IAA）」路线。**
@@ -125,9 +142,11 @@ shared/                 所有页面共用的模块
   store.js              全局存档：开关、最高分、游玩次数、已看引导
   audio.js              音频引擎：合成的八音盒 BGM + 音效
   match3.js             可复用的三消棋盘（没有失败概念，美术由调用方提供）
+  geom3d.js             3D 几何库：小岛 / 萝卜 / 兔子 / 道具，全程序化几何
   bunny.js              兔子角色 SVG（大厅与《最后一格》用）
 lab/
   surf-proto.html       3D 海上冲浪原型（暂停，未接进大厅）
+  match3-3d.html        3D 采萝卜原型（见「3D 版」小节）
 preview/                效果截图
   overview.png          合集大厅
   closet.png            衣橱与收集
@@ -138,12 +157,19 @@ preview/                效果截图
   small.png             360×780 小屏
   buddy.png             兔子 × 搭配 × 状态放大对照
   readability.png       棋子辨识度对照：实际尺寸 vs 缩到 46%（眯眼测试）
+  3d-board.png          3D 版：悬浮小岛棋盘
+  3d-dressup.png        3D 版：五套搭配对照
+  3d-radishes.png       3D 版：五种立体萝卜
+  3d-crown.png          3D 版：小皇冠换装
 tests/                  测试与校验（可跑，不是存档）
   check.mjs               结构校验：语法 / id 引用 / id 查重 / 资源 / 用词
   closet-regression.html  70 项功能断言的回归测试
   screenshot-host.html    截图宿主（?mode=work|react|round|sound|buddyzoom）
   readability.html        棋子在真实尺寸与缩放下的可辨性对照
   lastcell-compat.html    验证共用样式表的改动没有影响《最后一格》
+  geom3d.test.mjs         3D 几何库 62 项离线自检（Node 直接跑，不开浏览器）
+  palette-3d.mjs          3D 配色可辨性核算（从 geom3d.js 读配色表，不抄一份）
+  dressup-3d.html         3D 换装对照图（一次渲染五套搭配）
 alt/index.html          另一个实现版本，留档备查
 ```
 
@@ -191,7 +217,14 @@ BGM 是 C–G–Am–F 四小节循环的八音盒。
 
 ## 怎么验证
 
-这些游戏大量使用 Canvas 绘画（jsdom 没有 canvas 实现），所以**必须用真实浏览器测**。
+**3D 几何库不用开浏览器**——three.js 能在 Node 里离屏跑，所以几何与配色都有离线自检：
+
+```bash
+node tests/geom3d.test.mjs     # 62 项：尺寸 / 轮廓指纹 / 面朝向 / 撞色
+node tests/palette-3d.mjs      # 配色可辨性核算
+```
+
+其余部分大量使用 Canvas 绘画（jsdom 没有 canvas 实现），所以**必须用真实浏览器测**。
 
 **第一步：结构校验**（很快，先跑这个）
 

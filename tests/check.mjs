@@ -31,13 +31,17 @@ function checkScript(rel, code, i){
 }
 
 /* ---------- 1. 共用模块 ---------- */
-for(const f of ['shared/store.js', 'shared/audio.js', 'shared/bunny.js', 'shared/theme.js', 'shared/match3.js']){
+/* geom3d.js 是程序化几何库，跑在浏览器里但语法检查一样适用。
+   它依赖全局 THREE，所以只能用 new Function 验语法，不能直接 import。 */
+for(const f of ['shared/store.js', 'shared/audio.js', 'shared/bunny.js',
+                'shared/theme.js', 'shared/match3.js', 'shared/geom3d.js']){
   if(!exists(f)){ problems.push('缺少共用模块: ' + f); continue; }
   checkScript(f, read(f), 0);
 }
 
 /* ---------- 2. 页面：语法 / id 引用 / id 查重 / 资源 / CSS 括号 ---------- */
-const PAGES = ['index.html', 'games/lastcell.html', 'games/bunnycloset.html'];
+const PAGES = ['index.html', 'games/lastcell.html', 'games/bunnycloset.html',
+               'lab/match3-3d.html', 'lab/surf-proto.html'];
 
 for(const rel of PAGES){
   if(!exists(rel)){ problems.push('缺少页面: ' + rel); continue; }
@@ -82,7 +86,9 @@ if(exists('index.html')){
 /* ---------- 4. 测试页也要能解析 ---------- */
 /* 这一项单独列出来：功能测试跑不起来时，页面只会静默停在初始文案上，
    不看这一条会以为是游戏坏了，其实是测试脚本自己的语法错。 */
-for(const rel of ['tests/closet-regression.html', 'tests/lastcell-compat.html', 'tests/readability.html']){
+for(const rel of ['tests/closet-regression.html', 'tests/lastcell-compat.html',
+                  'tests/readability.html', 'tests/screenshot-3d.html',
+                  'tests/screenshot-host.html', 'tests/dressup-3d.html']){
   if(!exists(rel)) continue;
   inlineScripts(read(rel)).forEach((code, i) => {
     try{ new Function(code); ok.push(rel + ' 脚本#' + i + ' 语法通过'); }

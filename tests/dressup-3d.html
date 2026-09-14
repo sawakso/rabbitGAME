@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#1b1917;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+#strip{display:flex;gap:10px;padding:14px}
+figure{margin:0;text-align:center}
+figcaption{color:#cbbfb4;font-size:12px;line-height:1.5;padding:7px 4px 0}
+img{display:block;border-radius:10px;background:#cfe7f4}
+#host{position:absolute;left:-9999px;top:0}
+#out{color:#9f9;font:11px monospace;padding:8px}
+</style></head><body>
+<div id="strip">正在渲染…</div>
+<div id="host"><iframe id="f" src="/lab/match3-3d.html" width="420" height="860"></iframe></div>
+<div id="out"></div>
+<script>
+/* 换装对照图。
+   5 套搭配共用**同一个** WebGL 上下文 —— 每套开一个 iframe 会让
+   软件渲染慢到不可用（之前试过，3 个 iframe 跑了 3 分钟）。
+   所以这里只换装、重渲染、立刻把画布裁下来。 */
+const OUTFITS = [
+  { hat:'beret', cloth:'overall',  acc:'glass',    label:'贝雷帽 · 背带裤 · 圆眼镜' },
+  { hat:'crown', cloth:'dress',    acc:'wing',     label:'小皇冠 · 小裙子 · 小翅膀' },
+  { hat:'straw', cloth:'stripe',   acc:'bow',      label:'草莓帽 · 条纹衫 · 蝴蝶结' },
+  { hat:'magic', cloth:'space',    acc:'necklace', label:'魔法帽 · 太空服 · 项链' },
+  { hat:'night', cloth:'scarf',    acc:'backpack', label:'睡帽 · 围巾 · 小背包' }
+];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const f = document.getElementById('f');
+
+function crop(src, sx, sy, sw, sh){
+  const c = document.createElement('canvas');
+  c.width = sw; c.height = sh;
+  c.getContext('2d').drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+  return c.toDataURL();
+}
+
+(async function(){
+  let w = f.contentWindow;
+  for(let i = 0; i < 800 && !w.__m3d; i++) await sleep(25);
+  if(!w.__m3d){ document.getElementById('out').textContent = '游戏没起来'; return; }
+  const M = w.__m3d;
+  const cv = w.document.getElementById('c');
+  const W = cv.width, H = cv.height;
+
+  for(let i = 0; i < 120; i++) M.tick(1 / 60, true);   /* 让下落收敛 */
+  M.tick(1 / 60);                                       /* 真正渲染一帧 */
+
+  const shots = [];
+  for(const o of OUTFITS){
+    M.dress({ hat:o.hat, cloth:o.cloth, acc:o.acc });
+    /* dress 内部已经 render 过一次，这里立刻取图 */
+    await sleep(30);
+    const png = crop(cv, Math.round(W * 0.26), Math.round(H * 0.47),
+                         Math.round(W * 0.48), Math.round(H * 0.28));
+    shots.push(
+      '<figure><img src="' + png + '" style="width:' + Math.round(W * 0.48) + 'px">' +
+      '<figcaption>' + o.label + '</figcaption></figure>');
+  }
+  document.getElementById('strip').innerHTML = shots.join('');
+  document.getElementById('out').textContent = 'RESULT OK 画布 ' + W + '×' + H;
+  document.title = 'SHOT-READY';
+})();
+</script>
+</body></html>

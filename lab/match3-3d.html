@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>3D 三消棋盘 · 程序化几何</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#BFE3F2;
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  #c{display:block;width:100%;height:100%;touch-action:none}
+  .hud{position:fixed;left:0;right:0;top:0;padding:12px 14px;display:flex;gap:8px;
+    align-items:center;pointer-events:none;color:#4E3E36;z-index:2}
+  .pill{background:rgba(255,253,248,.92);border:2px solid rgba(231,216,198,.95);
+    border-radius:14px;padding:5px 11px;font-size:12px;font-weight:600;
+    box-shadow:0 3px 0 rgba(176,144,116,.25)}
+  .pill b{color:#D8863C;font-size:15px;margin-left:4px}
+  .note{position:fixed;left:12px;right:12px;bottom:10px;text-align:center;
+    font-size:11.5px;color:rgba(78,62,54,.7);pointer-events:none;line-height:1.6;z-index:2}
+  #boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#BFE3F2;color:#4E3E36;font-size:14px;z-index:9}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud">
+  <div class="pill">剩余<b id="moves">20</b></div>
+  <div class="pill">已采<b id="score">0</b></div>
+</div>
+<p class="note">拖动或点两下交换相邻的萝卜 · 所有几何体都是运行时代码生成的，没有加载任何模型文件</p>
+<div id="boot">正在生成模型…</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="../shared/geom3d.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   3D 三消棋盘
+   ------------------------------------------------------------
+   几何全部来自 ../shared/geom3d.js，这个文件只负责「规则 + 交互 + 动画」。
+   拆开的好处是：衣橱要接 3D 时，直接引同一个模块就行，
+   不用把建模代码再抄一遍。
+   ============================================================ */
+
+var COLS = 6, ROWS = 7, GAP = 1.06;
+var BOARD_TOP = 0.06;          /* 格子表面高度，棋子站在这里 */
+
+var stage, boardGroup, pickPlane, camera, renderer, scene;
+var clock = 0, frames = 0;
+
+/* ============================================================
+   1. 棋盘逻辑
+   ------------------------------------------------------------
+   规则与 2D 版完全一致：交换 / 匹配 / 掉落 / 连锁。
+   正式移植 3D 时这块应该从 shared/match3.js 抽成纯逻辑层，
+   3D 版只换渲染 —— 那时这 150 行是不用重写的。
+   ============================================================ */
+var grid = [], tiles = [], moves = 20, cleared = 0;
+var worn = { hat:'beret' };      /* 当前穿着，对应衣橱里的搭配 */
+var settleT = 0, clearT = 0, pendingClear = null, busy = false;
+
+function newTile(kind){
+  return {
+    kind: kind, mesh: Geom3D.radish(kind),
+    x: 0, z: 0, y: BOARD_TOP,
+    tx: 0, tz: 0, ty: BOARD_TOP,
+    scale: 1, tscale: 1, vy: 0, spin: 0
+  };
+}
+
+function cellPos(r, c){
+  return { x: (c - (COLS - 1) / 2) * GAP, z: (r - (ROWS - 1) / 2) * GAP };
+}
+
+function buildGrid(){
+  grid = []; tiles = [];
+  for(var r = 0; r < ROWS; r++){
+    var row = [];
+    for(var c = 0; c < COLS; c++){
+      var k, guard = 0;
+      do{
+        k = Math.floor(Math.random() * Geom3D.RADISH_COUNT); guard++;
+      }while(guard < 40 && (
+        (c >= 2 && row[c-1].kind === k && row[c-2].kind === k) ||
+        (r >= 2 && grid[r-1][c].kind === k && grid[r-2][c].kind === k)
+      ));
+      row.push(placeTile(k, r, c, 0));
+    }
+    grid.push(row);
+  }
+  layout();
+}
+
+function placeTile(kind, r, c, yOffset){
+  var t = newTile(kind);
+  var p = cellPos(r, c);
+  t.x = p.x; t.tx = p.x; t.z = p.z; t.tz = p.z;
+  t.y = BOARD_TOP + (yOffset || 0); t.ty = BOARD_TOP;
+  t.mesh.position.set(t.x, t.y, t.z);
+  boardGroup.add(t.mesh);
+  tiles.push(t);
+  return t;
+}
+
+function layout(){
+  for(var r = 0; r < ROWS; r++){
+    for(var c = 0; c < COLS; c++){
+      var t = grid[r][c];
+      if(!t) continue;
+      var p = cellPos(r, c);
+      t.tx = p.x; t.tz = p.z; t.ty = BOARD_TOP;
+    }
+  }
+}
+
+function findMatches(){
+  var hit = [], seen = {};
+  function addCell(r, c){
+    var k = r + ',' + c;
+    if(!seen[k]){ seen[k] = 1; hit.push({ r:r, c:c }); }
+  }
+  var r, c, run, same;
+  for(r = 0; r < ROWS; r++){
+    run = 1;
+    for(c = 1; c <= COLS; c++){
+      same = c < COLS && grid[r][c] && grid[r][c-1] && grid[r][c].kind === grid[r][c-1].kind;
+      if(same) run++;
+      else { if(run >= 3) for(var i = c - run; i < c; i++) addCell(r, i); run = 1; }
+    }
+  }
+  for(c = 0; c < COLS; c++){
+    run = 1;
+    for(r = 1; r <= ROWS; r++){
+      same = r < ROWS && grid[r][c] && grid[r-1][c] && grid[r][c].kind === grid[r-1][c].kind;
+      if(same) run++;
+      else { if(run >= 3) for(var j = r - run; j < r; j++) addCell(j, c); run = 1; }
+    }
+  }
+  return hit;
+}
+
+function doSwap(r1, c1, r2, c2){
+  if(busy || moves <= 0) return;
+  if(r2 < 0 || r2 >= ROWS || c2 < 0 || c2 >= COLS) return;
+  var a = grid[r1][c1], b = grid[r2][c2];
+  if(!a || !b) return;
+  grid[r1][c1] = b; grid[r2][c2] = a;
+  if(!findMatches().length){                 /* 换不出三连就换回去 */
+    grid[r1][c1] = a; grid[r2][c2] = b;
+    return;
+  }
+  moves--;
+  document.getElementById('moves').textContent = moves;
+  layout();
+  settleT = 0.17;                            /* 等交换动画走完再判定消除 */
+  busy = true;
+}
+
+function startClear(matches){
+  busy = true;
+  pendingClear = matches;
+  clearT = 0.2;
+  cleared += matches.length;
+  document.getElementById('score').textContent = cleared;
+  matches.forEach(function(cell){
+    var t = grid[cell.r][cell.c];
+    t.tscale = 0;                            /* 缩小 */
+    t.ty = BOARD_TOP + 0.85;                 /* 向上飞 */
+    t.spin = 0.001;                          /* 开始自转 */
+  });
+}
+
+function finishClear(){
+  pendingClear.forEach(function(cell){
+    var t = grid[cell.r][cell.c];
+    if(t){
+      boardGroup.remove(t.mesh);             /* 真回收，不然会一直堆在场景里 */
+      var i = tiles.indexOf(t);
+      if(i >= 0) tiles.splice(i, 1);
+    }
+    grid[cell.r][cell.c] = null;
+  });
+  pendingClear = null;
+  collapse();
+  settleT = 0.08;                            /* busy 保持 true，等缓冲走完才解开 */
+}
+
+function collapse(){
+  for(var c = 0; c < COLS; c++){
+    var write = ROWS - 1;
+    for(var r = ROWS - 1; r >= 0; r--){
+      if(grid[r][c]){
+        if(write !== r){ grid[write][c] = grid[r][c]; grid[r][c] = null; }
+        write--;
+      }
+    }
+    var newCount = write + 1;
+    for(var k = write; k >= 0; k--){
+      grid[k][c] = placeTile(Math.floor(Math.random() * Geom3D.RADISH_COUNT), k, c, newCount * GAP);
+    }
+  }
+  layout();
+}
+
+/* ============================================================
+   2. 每帧推进
+   ------------------------------------------------------------
+   全部动画挂在时间轴（settleT / clearT）上而不是 setTimeout，
+   这样 tick() 能手动推进，自动化测试才是确定的 —— 无头浏览器里
+   requestAnimationFrame 几乎不跑。
+   ============================================================ */
+function step(dt){
+  var k = Math.min(1, dt * 9);
+
+  tiles.slice().forEach(function(t){
+    t.x += (t.tx - t.x) * k;
+    t.z += (t.tz - t.z) * k;
+    if(t.spin > 0){
+      t.y += (t.ty - t.y) * k;
+      t.scale += (t.tscale - t.scale) * k;
+      t.spin += dt * 11;
+    } else {
+      /* 竖直方向用重力 + 落地回弹，比线性插值有「掉下来」的重量感 */
+      if(Math.abs(t.y - t.ty) > 0.008){
+        t.vy -= 30 * dt;
+        t.y += t.vy * dt;
+        if(t.y <= t.ty && t.vy < 0){
+          t.y = t.ty;
+          t.vy = Math.abs(t.vy) > 3.2 ? -t.vy * 0.24 : 0;
+        }
+      } else {
+        t.y = t.ty; t.vy = 0;
+        if(t.scale < t.tscale) t.scale = Math.min(t.tscale, t.scale + dt * 4);
+        else if(t.scale > t.tscale) t.scale = Math.max(t.tscale, t.scale - dt * 6);
+      }
+    }
+    t.mesh.position.set(t.x, t.y, t.z);
+    t.mesh.scale.setScalar(Math.max(0.001, t.scale));
+    t.mesh.rotation.y = t.spin;
+  });
+
+  if(clearT > 0){
+    clearT -= dt;
+    if(clearT <= 0) finishClear();
+  } else if(settleT > 0){
+    /* 缓冲时间走完才解锁：这段时间玩家的输入被忽略，
+       交换和掉落才有完整的动画时间 */
+    settleT -= dt;
+    if(settleT <= 0) busy = false;
+  } else if(!busy){
+    var m = findMatches();
+    if(m.length) startClear(m);
+  }
+
+  clock += dt;
+  stage.idle(dt);
+}
+
+/* ============================================================
+   3. 交互：射线拾取
+   ------------------------------------------------------------
+   用一块不可见的平板当拾取面，比逐格射线检测省事，
+   也不受棋子子网格的干扰。
+   ============================================================ */
+var sel = null, down = null;
+
+function pick(ev){
+  var rect = renderer.domElement.getBoundingClientRect();
+  var p = ev.touches ? ev.touches[0] : ev;
+  var nx = ((p.clientX - rect.left) / rect.width) * 2 - 1;
+  var ny = -((p.clientY - rect.top) / rect.height) * 2 + 1;
+  var ray = new THREE.Raycaster();
+  ray.setFromCamera({ x: nx, y: ny }, camera);
+  var hits = ray.intersectObject(pickPlane);
+  if(!hits.length) return null;
+  var local = pickPlane.worldToLocal(hits[0].point.clone());
+  /* 平板绕 X 转了 -90°，它的 local.y 对应世界的 -z，所以行号从 local.y 反算 */
+  var c = Math.round(local.x / GAP + (COLS - 1) / 2);
+  var r = Math.round(-local.y / GAP + (ROWS - 1) / 2);
+  if(r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
+  return { r:r, c:c };
+}
+
+function markSel(){
+  for(var r = 0; r < ROWS; r++){
+    for(var c = 0; c < COLS; c++){
+      var t = grid[r][c];
+      if(t) t.tscale = (sel && sel.r === r && sel.c === c) ? 1.24 : 1;
+    }
+  }
+}
+
+function bindInput(){
+  var el = renderer.domElement;
+  el.addEventListener('pointerdown', function(e){
+    if(busy || clearT > 0) return;
+    var cell = pick(e);
+    if(!cell) return;
+    var p = e.touches ? e.touches[0] : e;
+    down = { cell: cell, x: p.clientX, y: p.clientY, moved: false };
+    if(e.cancelable) e.preventDefault();
+  });
+  el.addEventListener('pointermove', function(e){
+    if(!down || busy) return;
+    var p = e.touches ? e.touches[0] : e;
+    var dx = p.clientX - down.x, dy = p.clientY - down.y;
+    if(Math.abs(dx) < 14 && Math.abs(dy) < 14) return;
+    down.moved = true;
+    var c = down.cell;
+    if(Math.abs(dx) > Math.abs(dy)) doSwap(c.r, c.c, c.r, c.c + (dx > 0 ? 1 : -1));
+    else                            doSwap(c.r, c.c, c.r + (dy > 0 ? 1 : -1), c.c);
+    down = null;
+  });
+  el.addEventListener('pointerup', function(e){
+    if(!down) return;
+    var cell = down.cell, moved = down.moved;
+    down = null;
+    if(moved || busy) return;
+    if(!sel){ sel = cell; markSel(); return; }
+    if(sel.r === cell.r && sel.c === cell.c){ sel = null; markSel(); return; }
+    if(Math.abs(sel.r - cell.r) + Math.abs(sel.c - cell.c) === 1){
+      doSwap(sel.r, sel.c, cell.r, cell.c);
+      sel = null; markSel();
+    } else { sel = cell; markSel(); }
+  });
+  el.addEventListener('pointercancel', function(){ down = null; });
+}
+
+/* ============================================================
+   4. 启动
+   ============================================================ */
+stage = Geom3D.createStage({ canvas: document.getElementById('c'), cols: COLS, rows: ROWS, gap: GAP });
+scene = stage.scene; camera = stage.camera; renderer = stage.renderer;
+boardGroup = stage.board;
+
+pickPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(COLS * GAP, ROWS * GAP),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+pickPlane.rotation.x = -Math.PI / 2;
+pickPlane.position.y = 1.2;                  /* 抬到棋子之上，保证先命中它 */
+boardGroup.add(pickPlane);
+
+Geom3D.dress(stage.bunny, worn);   /* 默认戴小贝雷帽：帽檐大的款式会盖住脸 */
+buildGrid();
+bindInput();
+window.addEventListener('resize', stage.resize);
+window.addEventListener('orientationchange', stage.resize);
+stage.render();
+document.getElementById('boot').style.display = 'none';
+
+var lastT = performance.now();
+function loop(now){
+  var dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+  frames++;
+  step(dt);
+  stage.render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ============================================================
+   5. 自动化测试与截图用的钩子
+   ============================================================ */
+window.__m3d = {
+  ready: true,
+  /* 第二参数跳过重绘：无头软件渲染下每帧重绘会把截图拖到几分钟 */
+  tick: function(dt, skipRender){
+    step(dt || 1 / 60);
+    if(!skipRender) stage.render();
+  },
+  state: function(){
+    return {
+      cols: COLS, rows: ROWS, moves: moves, cleared: cleared, frames: frames,
+      kinds: Geom3D.RADISH_COUNT, tiles: tiles.length,
+      tris: renderer.info.render.triangles,
+      calls: renderer.info.render.calls,
+      busy: busy, settleT: settleT, clearT: clearT
+    };
+  },
+  grid: function(){
+    var g = [];
+    for(var r = 0; r < ROWS; r++){
+      var row = [];
+      for(var c = 0; c < COLS; c++) row.push(grid[r][c] ? grid[r][c].kind : -1);
+      g.push(row);
+    }
+    return g;
+  },
+  hatNames: Geom3D.HAT_NAMES,
+  clothNames: Geom3D.CLOTH_NAMES,
+  accNames: Geom3D.ACC_NAMES,
+  dress: function(worn){ Geom3D.dress(stage.bunny, worn); stage.render(); },
+  /* 兼容旧的截图脚本 */
+  setHat: function(name){ worn.hat = name; Geom3D.dress(stage.bunny, worn); stage.render(); },
+  palette: function(){ return Geom3D.PALETTE; },
+  setKind: function(r, c, kind){
+    var old = grid[r][c];
+    if(!old) return;
+    var idx = tiles.indexOf(old);
+    boardGroup.remove(old.mesh);
+    if(idx >= 0) tiles.splice(idx, 1);
+    var t = placeTile(kind, r, c, 0);
+    grid[r][c] = t;
+    t.scale = 1; t.tscale = 1; t.y = BOARD_TOP; t.ty = BOARD_TOP;
+    t.mesh.position.set(t.x, t.y, t.z);
+    stage.render();
+  },
+  showAllKinds: function(){
+    for(var i = 0; i < Geom3D.RADISH_COUNT; i++) this.setKind(1, i, i);
+  },
+  cellScreen: function(r, c){
+    var p = cellPos(r, c);
+    var v = new THREE.Vector3(p.x, BOARD_TOP, p.z).project(camera);
+    var rect = renderer.domElement.getBoundingClientRect();
+    return {
+      x: rect.left + (v.x + 1) / 2 * rect.width,
+      y: rect.top + (-v.y + 1) / 2 * rect.height
+    };
+  }
+};
+})();
+</script>
+</body>
+</html>
