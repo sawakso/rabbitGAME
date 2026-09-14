@@ -15,14 +15,17 @@
    ============================================================ */
 
 .app{position:relative;z-index:1;width:min(100vw,460px);margin:0 auto;height:100vh;
-  display:flex;flex-direction:column;padding:calc(46px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;padding:calc(46px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));
   gap:8px;overflow:hidden}
 
 /* 顶栏：两个数额胶囊 + 两个图标按钮要挤在一行里，全部禁止换行 */
 .top{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .pill{background:rgba(255,253,248,.95);border:2px solid var(--line);border-radius:14px;
   padding:4px 9px;box-shadow:2px 3px 0 var(--tap);display:flex;align-items:baseline;gap:4px;
-  white-space:nowrap;min-width:0}
+  white-space:nowrap;min-width:0;font-family:inherit;text-align:left}
+/* 体力还差一点、且今天还有补充次数时，给个淡绿底暗示「这里可以点」 */
+.pill.en{cursor:pointer}
+.pill.en.can{border-color:#A8D8C0}
 .pill small{font-size:9.5px;color:var(--ink3);white-space:nowrap}
 .pill b{font-size:16px;color:#D8863C;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pill .rate{font-size:9px;color:#B99A7C;white-space:nowrap}
@@ -97,8 +100,10 @@
   border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.14);color:#fff;
   border-radius:999px;padding:11px 0;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 .hide{display:none!important}
-.toast{position:fixed;left:50%;bottom:16%;transform:translateX(-50%);z-index:30;
-  background:rgba(60,44,36,.9);color:#fff;font-size:13px;border-radius:999px;padding:9px 18px;
+.toast{position:fixed;left:0;right:0;bottom:20%;z-index:30;margin:0 auto;
+  width:fit-content;max-width:min(86vw,340px);text-align:center;
+  background:rgba(60,44,36,.92);color:#fff;font-size:13px;line-height:1.5;
+  border-radius:16px;padding:9px 18px;
   pointer-events:none;opacity:0;transition:opacity .3s}
 .toast.show{opacity:1}
 
@@ -120,13 +125,13 @@
 .nav button .dot{position:absolute;margin-left:18px;margin-top:-2px;width:6px;height:6px;
   border-radius:50%;background:#E8657A}
 
-/* ---------- 劳作页 ---------- */
+/* ---------- 采胡萝卜页 ---------- */
 .workHead{display:flex;gap:7px;flex:0 0 auto}
 .wk{flex:1;background:rgba(255,253,248,.94);border:2px solid var(--line);border-radius:14px;
   padding:5px 4px;text-align:center;box-shadow:2px 3px 0 var(--tap)}
 .wk small{display:block;font-size:9.5px;color:var(--ink3)}
 .wk b{font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
-.boardBox{position:relative;width:100%;padding:8px;border-radius:20px;
+.boardBox{position:relative;width:100%;padding:6px;border-radius:20px;
   background:rgba(255,252,246,.86);border:2px solid var(--line);
   box-shadow:4px 5px 0 var(--tap),0 10px 24px rgba(150,118,92,.12)}
 #m3{display:block;margin:0 auto;border-radius:13px;touch-action:none}
@@ -148,11 +153,13 @@
   100%{opacity:0;transform:scale(1.1)}}
 
 /* 兔子围观条 */
-.buddyRow{flex:0 0 auto;display:flex;align-items:center;gap:8px;height:100px}
-#buddy{flex:0 0 70px;width:70px;height:100px;display:block}
-.bubble{position:relative;flex:1;min-width:0;
+.buddyRow{flex:0 0 auto;display:flex;align-items:center;gap:8px;height:88px}
+/* 画布宽度贴着兔子收窄：原来 70 宽里兔子只占 38，右边全是空白，
+   气泡被推得老远。现在 56 宽兔子占 46，比例对了，也让出 12px 给棋盘 */
+#buddy{flex:0 0 56px;width:56px;height:88px;display:block}
+.bubble{position:relative;flex:0 1 auto;min-width:0;max-width:100%;
   background:#FFFDF8;border:1.5px solid var(--line);border-radius:14px;
-  padding:8px 11px;font-size:11.5px;line-height:1.5;color:#7A6353;
+  padding:9px 12px;font-size:11.5px;line-height:1.55;color:#7A6353;
   box-shadow:2px 2px 0 var(--tap);
   transition:background .18s,border-color .18s,color .18s}
 .bubble:before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;
@@ -237,9 +244,9 @@
     <div class="pill">
       <small>胡萝卜</small><b id="carrotNum">0</b><span class="rate" id="rate">+0.2/秒</span>
     </div>
-    <div class="pill en">
+    <button class="pill en" id="btnEnergy" title="体力">
       <small>体力</small><b id="energyNum">5</b><span class="rate" id="energyTip">已满</span>
-    </div>
+    </button>
     <div class="spacer"></div>
     <button class="iconBtn" id="btnSound" title="声音设置">♪</button>
     <button class="iconBtn" id="btnCard" title="生成形象卡">✧</button>
@@ -259,7 +266,7 @@
     </div>
   </section>
 
-  <!-- ===== 劳作视图 ===== -->
+  <!-- ===== 采胡萝卜视图 ===== -->
   <section class="view hide" id="viewWork">
     <div class="workHead">
       <div class="wk"><small>剩余步数</small><b id="movesNum">20</b></div>
@@ -273,17 +280,17 @@
     <!-- 兔子就站在棋盘旁边围观：气泡里的台词同时充当操作提示 -->
     <div class="buddyRow">
       <canvas id="buddy"></canvas>
-      <div class="bubble" id="buddySay">点「开始劳作」，我在这儿看着你消</div>
+      <div class="bubble" id="buddySay">拜托拜托，帮我采点胡萝卜嘛～</div>
     </div>
     <div class="actions">
-      <button class="btn primary" id="btnWork">开始劳作<small>消耗 1 点体力</small></button>
+      <button class="btn primary" id="btnWork">开始采胡萝卜<small>消耗 1 点体力</small></button>
       <button class="btn ad" id="btnRevive">看广告 +5 步<small>每局一次</small></button>
     </div>
   </section>
 
   <nav class="nav">
     <button data-view="closet" class="on"><i>◈</i>衣橱</button>
-    <button data-view="work"><i>✿</i>劳作</button>
+    <button data-view="work"><i>✿</i>采胡萝卜</button>
     <button id="btnSign"><i>☼</i>签到</button>
     <button id="btnWheel"><i>◎</i>转盘</button>
     <button id="btnTask"><i>✓</i>任务</button>
@@ -332,7 +339,7 @@ var DRAW_COST      = 30;           /* 开一次盲盒 */
 var AD_DRAW_CD     = 5 * 60 * 1000;/* 免费抽的冷却 */
 var START_CARROT   = 90;
 
-/* 劳作（三消） */
+/* 采胡萝卜（三消） */
 var M3_COLS = 6, M3_ROWS = 7, M3_KINDS = 5;
 var M3_MOVES = 20;                 /* 每局步数 */
 var M3_REVIVE = 5;                 /* 看广告续的步数 */
@@ -369,7 +376,7 @@ var WHEEL = [
 /* 每日任务 */
 var TASKS = [
   { id:'draw',  name:'开 1 次盲盒',   reward:20 },
-  { id:'work',  name:'劳作 1 局',     reward:25 },
+  { id:'work',  name:'采胡萝卜 1 次',     reward:25 },
   { id:'dress', name:'换一套搭配',     reward:15 }
 ];
 
@@ -680,7 +687,7 @@ function bg_grass(c){
   ell(c, 82, 124, 3, 3); c.fill();
 }
 
-/* --- 劳作棋盘上的五种水果（三消棋子） --- */
+/* --- 采胡萝卜棋盘上的五种水果（三消棋子） --- */
 var FRUIT = [
   { main:'#F0913F', dark:'#D8762A', light:'#FFC089', leaf:'#7FB86A' },  /* 胡萝卜 */
   { main:'#E8657A', dark:'#C74A5F', light:'#FF93A3', leaf:'#7FB86A' },  /* 草莓 */
@@ -918,9 +925,11 @@ var S = {
   lastTick: Date.now(),
   nextFreeDraw: 0,
   drawn: 0,
-  /* 劳作与体力 */
+  /* 采胡萝卜与体力 */
   energy: ENERGY_MAX,
   energyAt: Date.now(),
+  energyAdDate: '',
+  energyAdUsed: 0,
   bestRound: 0,
   /* 七日签到 */
   signDay: 0,
@@ -962,6 +971,7 @@ function loadSave(){
   /* 跨天重置：转盘次数、每日任务 */
   var t = today();
   if(S.wheelDate !== t){ S.wheelDate = t; S.wheelUsed = 0; S.wheelAdUsed = 0; }
+  if(S.energyAdDate !== t){ S.energyAdDate = t; S.energyAdUsed = 0; }
   if(S.taskDate !== t){ S.taskDate = t; S.taskDone = {}; }
 
   recoverEnergy();
@@ -1162,10 +1172,15 @@ function renderDrawBtn(){
     ? '用稀有券抽<small>剩 ' + S.tickets + ' 张 · 必出稀有以上</small>'
     : '开盲盒<small>' + DRAW_COST + ' 胡萝卜</small>';
 }
+/* 这个函数在主循环里每帧都会调，所以写 DOM 前先比一比：
+   值没变就别碰 DOM，否则低端机上会白白触发 60 次/秒的样式重算 */
+var lastCarrotShown = -1, lastRateShown = '';
 function renderCarrots(){
-  $('carrotNum').textContent = Math.floor(S.carrots);
+  var n = Math.floor(S.carrots);
+  if(n !== lastCarrotShown){ lastCarrotShown = n; $('carrotNum').textContent = n; }
   renderDrawBtn();
-  $('rate').textContent = '+' + CARROT_PER_SEC.toFixed(1) + '/秒';
+  var rate = '+' + CARROT_PER_SEC.toFixed(1) + '/秒';
+  if(rate !== lastRateShown){ lastRateShown = rate; $('rate').textContent = rate; }
 }
 
 var toastTimer = null;
@@ -1361,7 +1376,7 @@ $('cardWrap').addEventListener('click', function(e){
 });
 
 /* ============================================================
-   10. 视图切换 · 劳作 · 签到 · 转盘 · 每日任务
+   10. 视图切换 · 采胡萝卜 · 签到 · 转盘 · 每日任务
    ============================================================ */
 
 /* ---------- 视图 ---------- */
@@ -1375,10 +1390,10 @@ function switchView(v){
     b.classList.toggle('on', b.dataset.view === v);
   });
   if(v === 'work'){
-    /* 进劳作页才量得到高度，这时才知道棋盘最多能多高 */
+    /* 进采胡萝卜页才量得到高度，这时才知道棋盘最多能多高 */
     if(m3){ m3.resize(); m3.setActive(round.playing); }
     resizeBuddy();
-    if(!round.playing) buddySay('点「开始劳作」，我在这儿看着你消', false, true);
+    if(!round.playing) buddySay('拜托拜托，帮我采点胡萝卜嘛～', false, true);
   } else {
     if(m3) m3.setActive(false);
     drawStage();
@@ -1687,8 +1702,8 @@ var BW = 0, BH = 0;
 var lastSay = '';
 
 function resizeBuddy(){
-  BW = buddyCv.clientWidth || 70;
-  BH = buddyCv.clientHeight || 100;
+  BW = buddyCv.clientWidth || 56;
+  BH = buddyCv.clientHeight || 88;
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
   buddyCv.width = Math.round(BW * dpr);
   buddyCv.height = Math.round(BH * dpr);
@@ -1701,13 +1716,41 @@ var buddy = {
   spark: [], milestone: 0
 };
 
-/* 兔子坐标系里它实际占的方框（耳朵尖到脚底） */
-var BUDDY_BOX = { x: 18, y: -6, w: 64, h: 140 };
+/* 兔子坐标系里它实际占的方框（耳朵尖到脚底）。
+   x 特意放宽到 10~90，因为「小翅膀」这件配饰会横向伸出去，
+   只框住身体的话翅膀尖会被画布切掉 */
+var BUDDY_BOX = { x: 10, y: -6, w: 80, h: 140 };
 var BUDDY_FOOT_PAD = 7;        /* 脚底往下留给影子的空间 */
+
+/* 兔子穿的就是玩家在衣橱里配好的那一套。按 id 组合缓存，避免每帧遍历 24 件道具 */
+var wearCache = { key:'', hat:null, cloth:null, acc:null };
+function buddyWear(){
+  var key = (S.worn.hat || '-') + '|' + (S.worn.cloth || '-') + '|' + (S.worn.acc || '-');
+  if(key !== wearCache.key){
+    wearCache.key = key;
+    wearCache.hat = itemById(S.worn.hat);
+    wearCache.cloth = itemById(S.worn.cloth);
+    wearCache.acc = itemById(S.worn.acc);
+  }
+  return wearCache;
+}
 
 function buddyReset(){
   buddy.cheer = 0; buddy.hop = 0; buddy.hot = 0; buddy.lean = 0;
   buddy.spark = []; buddy.milestone = 0;
+}
+
+/* 玩家盯着棋盘不动的时候，兔子主动说一句。
+   这类「被等着」的感觉比任何进度条都留人 */
+var IDLE_LINES = ['慢慢想也可以的～', '我等你哦，不着急～', '要不要我帮你看看呀？'];
+var idleIdx = 0, idleAt = 0;
+var lastActAt = Date.now();
+function buddyIdleCheck(){
+  if(curView !== 'work' || !round.playing) return;
+  var now = Date.now();
+  if(now - lastActAt < 11000 || now - idleAt < 11000) return;
+  idleAt = now;
+  buddySay(IDLE_LINES[idleIdx++ % IDLE_LINES.length], false);
 }
 
 /* 台词写进气泡。quiet=true 是状态提示：内容没变就不重播动画 */
@@ -1724,17 +1767,17 @@ function buddySay(text, hot, quiet){
 }
 
 function spawnSpark(n){
-  /* 从兔子四周往外飞，而不是从脸上冒出来 —— 撒在脸上会把表情遮住，
-     而表情正是这个角色唯一的信息量 */
+  /* 沿兔子头顶那圈弧线生成，再往外上方飘。
+     撒在脸上会遮住表情（表情是这个角色唯一的信息量），
+     撒得太靠上又会直接飞出画布 —— 画布只有 56×88，能用的就头顶这一条带 */
   for(var i = 0; i < n; i++){
-    var a = -Math.PI * (0.08 + Math.random() * 0.84);         /* 上半圈 */
-    var rad = BW * (0.34 + Math.random() * 0.2);
-    var out = 18 + Math.random() * 34;
+    var a = Math.PI * (0.12 + Math.random() * 0.76);      /* 0=右  π/2=上  π=左 */
     buddy.spark.push({
-      x: BW / 2 + Math.cos(a) * rad,
-      y: BH * 0.48 + Math.sin(a) * rad * 0.66,
-      vx: Math.cos(a) * out,
-      vy: Math.sin(a) * (out + 14) - 16,
+      x: BW / 2 + Math.cos(a) * BW * (0.44 + Math.random() * 0.12),
+      y: BH * 0.24 - Math.sin(a) * BH * (0.1 + Math.random() * 0.08)
+        + (Math.random() - 0.5) * 8,
+      vx: Math.cos(a) * (18 + Math.random() * 26),
+      vy: -Math.sin(a) * (8 + Math.random() * 16) - 4,
       age: 0, life: 0.6 + Math.random() * 0.35,
       r: 1.5 + Math.random() * 2.0,
       col: ['#F2C14E', '#E68B9C', '#8FCFB0', '#9DB8F0'][Math.floor(Math.random() * 4)],
@@ -1770,20 +1813,26 @@ function drawBuddy(dt){
   bctx.ellipse(BW / 2, baseY + 2, 17 * sh, 3.4 * sh, 0, 0, Math.PI * 2);
   bctx.fill();
 
+  var wear = buddyWear();
   bctx.save();
   bctx.translate(BW / 2 + buddy.lean * 3, baseY - lift);
   if(buddy.hot > 0) bctx.rotate(-0.06 * buddy.lean);
   bctx.scale(sc, sc);
   bctx.translate(-(BUDDY_BOX.x + BUDDY_BOX.w / 2), -(BUDDY_BOX.y + BUDDY_BOX.h));
+  /* 穿着顺序和展示台一致：翅膀在身后，帽子最后戴 */
+  if(wear.acc && wear.acc.id === 'a_wing') wear.acc.draw(bctx, buddy.t);
   drawBody(bctx, buddy.t);
   drawHead(bctx);
   drawFace(bctx, mood, buddy.t);
+  if(wear.cloth) wear.cloth.draw(bctx, buddy.t);
+  if(wear.hat) wear.hat.draw(bctx, buddy.t);
+  if(wear.acc && wear.acc.id !== 'a_wing') wear.acc.draw(bctx, buddy.t);
   bctx.restore();
 
   for(var i = buddy.spark.length - 1; i >= 0; i--){
     var p = buddy.spark[i];
     p.age += dt;
-    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 150 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 92 * dt;
     if(p.age >= p.life){ buddy.spark.splice(i, 1); continue; }
     bctx.globalAlpha = Math.max(0, 1 - p.age / p.life);
     bctx.fillStyle = p.col;
@@ -1796,6 +1845,8 @@ function drawBuddy(dt){
 
 /* 每次消除都会走这里：连击越高、单次消得越多，反应越大 */
 function buddyCheer(info){
+  lastActAt = Date.now();
+  idleAt = Date.now();
   var big = info.combo >= 4 || info.cleared >= 5;
   buddy.cheer = big ? 1.5 : 0.85;
   buddy.hop = 1;
@@ -1815,17 +1866,17 @@ function buddyCheer(info){
     buddy.hop = 1;
     spawnSpark(18);
     GameAudio.sfx('ding');
-    buddySay('已经收到 ' + round.gained + ' 个胡萝卜啦！', true);
+    buddySay('已经 ' + round.gained + ' 个啦…真的谢谢你～', true);
     return;
   }
 
-  if(info.combo >= 4) buddySay('哇！' + info.combo + ' 连击，太厉害了！', true);
-  else if(info.cleared >= 5) buddySay('一次就消掉 ' + info.cleared + ' 个！', true);
-  else if(info.combo >= 2) buddySay('连击 x' + info.combo + '，继续！', true);
-  else buddySay('消掉 ' + info.cleared + ' 个啦', false, true);
+  if(info.combo >= 4) buddySay('哇！' + info.combo + ' 连击…我好开心呀～', true);
+  else if(info.cleared >= 5) buddySay('一下这么多！眼睛都看花啦～', true);
+  else if(info.combo >= 2) buddySay('连着采到了，好喜欢你～', true);
+  else buddySay('谢谢你～', false, true);
 }
 
-/* ---------- 劳作（三消） ---------- */
+/* ---------- 采胡萝卜（三消） ---------- */
 var m3 = null;
 var round = { playing:false, gained:0, reviveUsed:false, settled:true, total:0 };
 
@@ -1838,7 +1889,7 @@ function m3MaxHeight(){
     var el = v.querySelector('.' + cls);
     if(el) fixed += el.offsetHeight;
   });
-  fixed += 8 * 2 + 4;                              /* boardBox 的 padding 与边框 */
+  fixed += 6 * 2 + 4;                              /* boardBox 的 padding 与边框 */
   return Math.max(150, v.clientHeight - fixed);
 }
 
@@ -1849,8 +1900,8 @@ function initM3(){
     drawTile: drawFruit,
     particleColor: function(kind){ return FRUIT[kind].main; },
     sfx: function(name, n){ GameAudio.sfx(name, n); },
-    /* 还没开始劳作就点棋盘：给一句提示，而不是静默无反应 */
-    onInactiveTap: function(){ buddySay('先点下面的「开始劳作」呀～', false, true); },
+    /* 还没开始就点棋盘：给一句撒娇的提示，而不是静默无反应 */
+    onInactiveTap: function(){ buddySay('再等一下下嘛，先点下面那个按钮～', false, true); },
     onMatch: function(info){
       round.gained += info.gain;
       $('gainNum').textContent = round.gained;
@@ -1866,9 +1917,9 @@ function initM3(){
     onMove: function(left){
       $('movesNum').textContent = left;
       /* 步数快用完了给个提示 */
-      if(left <= 0) buddySay('步数用完啦，想看广告续步继续消', false, true);
-      else if(left <= 3) buddySay('只剩 ' + left + ' 步了', false, true);
-      else buddySay('滑动交换相邻的水果，三个连一起就消掉', false, true);
+      if(left <= 0) buddySay('用完啦…不过没关系，这些也够我开心一阵子了', false, true);
+      else if(left <= 3) buddySay('只剩 ' + left + ' 步了…还可以再来一点点吗？', false, true);
+      else buddySay('滑动交换相邻的水果，三个连一起就能采到', false, true);
     },
     onEnd: function(total){ onRoundEnd(total); }
   });
@@ -1884,19 +1935,26 @@ function setWorkBusy(playing){
 
 function startRound(){
   recoverEnergy();
-  if(S.energy < 1){ toast('体力不够了，等一会儿或者看广告补'); return; }
+  if(S.energy < 1){
+    /* 别只弹一句「体力不够」就完了 —— 要当场给一个出口 */
+    GameAudio.sfx('bad');
+    buddySay('体力用完啦…可以等一下下，或者看个小视频？', false);
+    sheetEnergy();
+    return;
+  }
   S.energy--;
   saveNow(); renderEnergy();
   /* 就地改字段而不是整体重新赋值，外部持有引用时才不会拿到旧对象 */
   round.playing = true; round.gained = 0; round.reviveUsed = false;
   round.settled = false; round.total = 0;
   buddyReset();
+  lastActAt = Date.now(); idleAt = Date.now();
   $('gainNum').textContent = 0;
   $('bestNum').textContent = S.bestRound;
   setWorkBusy(true);
   GameAudio.unlock();
   m3.start();
-  buddySay('开始啦，我在这儿看着你消～', false);
+  buddySay('谢谢你！我会乖乖看着你的～', false);
   taskDone('work');
   refreshDots();
 }
@@ -1909,7 +1967,7 @@ function onRoundEnd(total){
   setWorkBusy(false);
   GameAudio.sfx('ding');
   buddy.cheer = 1.2; buddy.hop = 1;
-  buddySay('这一局辛苦啦，把胡萝卜收下吧', false);
+  buddySay('谢谢你陪我玩～这些可以都给我吗？', false);
   sheetRound(round.total);
 }
 
@@ -1925,7 +1983,7 @@ function takeRoundHarvest(loud){
   if(g > 0) toast((loud ? '收下 ' : '已收下 ') + g + ' 个胡萝卜');
   if(loud){
     GameAudio.sfx('win');
-    buddySay(g > 0 ? '收到 ' + g + ' 个胡萝卜！' : '下次多消一点～', g >= 60);
+    buddySay(g > 0 ? '收到啦！我会好好收着的～' : '一颗也没有…不过还是谢谢你～', g >= 60);
   }
   return g;
 }
@@ -1960,13 +2018,48 @@ function sheetRound(total){
         round.playing = true;
         setWorkBusy(true);
         $('gainNum').textContent = round.gained;
-        buddySay('又续了 ' + M3_REVIVE + ' 步，接着来！', false);
+        buddySay('太好了…可以再陪我一会儿～', false);
       });
     });
     var tc = $('takeCarrot');
     if(tc) tc.addEventListener('click', function(){
       takeRoundHarvest(true);
       closeSheet();
+    });
+  }
+}
+
+/* ---------- 体力补给 ----------
+   每 20 分钟自动回 1 点，但等不及的时候要有个出口：这是 6 个广告点位里
+   唯一一个「玩家主动想要」的，之前只有常量、没有任何入口 */
+function sheetEnergy(){
+  var left = Math.max(0, ENERGY_AD_MAX - (S.energyAdUsed || 0));
+  var full = S.energy >= ENERGY_MAX;
+  var mins = Math.ceil(energyIn() / 60000);
+  var html = '<h2>体力</h2>' +
+    '<p class="sub">' + (full ? '现在满满的，先去玩一会儿吧' : '再等约 ' + mins + ' 分钟会自动回 1 点') + '</p>' +
+    '<div class="sndRow"><b>当前体力<small>每 20 分钟自动恢复 1 点</small></b>' +
+      '<span style="font-size:22px;font-weight:700;color:#4C9179">' + S.energy + ' / ' + ENERGY_MAX + '</span></div>' +
+    (!full && left > 0
+      ? '<button class="btn ad" style="width:100%;margin-top:12px" id="energyAd">看广告 +' + ENERGY_AD + ' 点体力' +
+        '<small>今天还能补 ' + left + ' 次</small></button>'
+      : '<p class="sub" style="margin-top:14px">' + (full ? '不用补啦' : '今天的补充次数用完了，明天再来') + '</p>') +
+    '<button class="sheetClose" data-close="1">' + (full ? '好的' : '等一会儿再来') + '</button>';
+  showSheet(html, bindSheet);
+
+  function bindSheet(){
+    var b = $('energyAd');
+    if(b) b.addEventListener('click', function(){
+      showAd('energy', function(ok){
+        if(!ok) return;
+        S.energyAdUsed = (S.energyAdUsed || 0) + 1;
+        S.energy = Math.min(ENERGY_MAX, S.energy + ENERGY_AD);
+        S.energyAt = Date.now();
+        saveNow(); renderEnergy(); refreshDots();
+        GameAudio.sfx('win');
+        toast('+' + ENERGY_AD + ' 点体力');
+        sheetEnergy();          /* 立刻刷新面板，可以连续补 */
+      });
     });
   }
 }
@@ -2008,12 +2101,14 @@ function sheetSound(){
 }
 
 /* ---------- 体力显示 ---------- */
+var lastEnergyShown = -1, lastEnergyTip = '';
 function renderEnergy(){
-  $('energyNum').textContent = S.energy;
-  var left = energyIn();
-  $('energyTip').textContent = S.energy >= ENERGY_MAX
-    ? '已满'
-    : Math.ceil(left / 60000) + ' 分';
+  if(S.energy !== lastEnergyShown){ lastEnergyShown = S.energy; $('energyNum').textContent = S.energy; }
+  var tip = S.energy >= ENERGY_MAX ? '已满' : Math.ceil(energyIn() / 60000) + ' 分';
+  if(tip !== lastEnergyTip){ lastEnergyTip = tip; $('energyTip').textContent = tip; }
+  /* 还有得补的时候给胶囊一点淡绿底，暗示这里能点 */
+  $('btnEnergy').classList.toggle('can',
+    S.energy < ENERGY_MAX && (S.energyAdUsed || 0) < ENERGY_AD_MAX);
 }
 
 /* ============================================================
@@ -2027,7 +2122,7 @@ function loop(now){
   if(S.carrots < 99999) S.carrots += CARROT_PER_SEC * dt;
   renderCarrots();
   if(curView === 'closet') drawStage();
-  else if(curView === 'work') drawBuddy(dt);
+  else if(curView === 'work'){ drawBuddy(dt); buddyIdleCheck(); }
 
   /* 体力恢复 */
   if(recoverEnergy() > 0){ saveNow(); refreshDots(); }
@@ -2064,13 +2159,13 @@ resizeStage();
 drawStage();
 updateStageTag();
 initM3();
-/* 先把盘面摆好：一进劳作页看到的就是一副完整棋盘，而不是空白 */
+/* 先把盘面摆好：一进采胡萝卜页看到的就是一副完整棋盘，而不是空白 */
 m3.start();
 m3.setActive(false);
 resizeBuddy();
 drawBuddy(0);
 renderSoundBtn();
-buddySay('点「开始劳作」，我在这儿看着你消', false, true);
+buddySay('拜托拜托，帮我采点胡萝卜嘛～', false, true);
 $('bestNum').textContent = S.bestRound;
 refreshDots();
 
@@ -2083,8 +2178,12 @@ $('btnSound').addEventListener('click', function(){
   GameAudio.unlock(); GameAudio.sfx('ui');
   sheetSound();
 });
+$('btnEnergy').addEventListener('click', function(){
+  GameAudio.unlock(); GameAudio.sfx('ui');
+  sheetEnergy();
+});
 $('btnRevive').addEventListener('click', function(){
-  if(!round.playing){ toast('先开始一局劳作吧'); return; }
+  if(!round.playing){ toast('先点「开始采胡萝卜」嘛～'); return; }
   if(round.reviveUsed){ toast('这一局已经续过步了'); return; }
   showAd('revive', function(ok){
     if(!ok) return;
@@ -2092,7 +2191,7 @@ $('btnRevive').addEventListener('click', function(){
     m3.addMoves(M3_REVIVE);
     setWorkBusy(true);
     GameAudio.sfx('ui');
-    buddySay('又续了 ' + M3_REVIVE + ' 步，接着来！', false);
+    buddySay('太好了…可以再陪我一会儿～', false);
   });
 });
 
@@ -2146,6 +2245,7 @@ window.__closet = {
   switchView: switchView,
   startRound: startRound,
   takeHarvest: takeRoundHarvest,
+  energy: function(){ return { used: S.energyAdUsed || 0, max: ENERGY_AD_MAX, add: ENERGY_AD }; },
   tickBuddy: function(dt){ resizeBuddy(); drawBuddy(dt || 1 / 60); return BW + 'x' + BH; },
   closeSheet: closeSheet,
   sheetOpen: function(){ return !$('sheetWrap').classList.contains('hide'); },

@@ -1,8 +1,8 @@
 /* ============================================================
    Match3 —— 可复用的三消棋盘
    ------------------------------------------------------------
-   设计取向：**只劳作，不失败**。
-   步数用完就是「这一局结束了」，没有输赢，可以看广告续步继续。
+   设计取向：**只玩不失败**。
+   步数用完就是「这一局结束了」，没有输赢，可以续步继续。
    美术由调用方通过 drawTile 提供，所以这个模块本身不带任何画法。
 
    用法：
@@ -408,7 +408,7 @@
       for(var r = 0; r < ROWS; r++){
         for(var c = 0; c < COLS; c++){
           ctx.fillStyle = (r + c) % 2 ? 'rgba(255,252,246,.72)' : 'rgba(250,244,235,.72)';
-          rrect(ctx, c * CS + 1.6, r * CS + 1.6, CS - 3.2, CS - 3.2, 8);
+          rrect(ctx, c * CS + 1.2, r * CS + 1.2, CS - 2.4, CS - 2.4, 8);
           ctx.fill();
         }
       }
@@ -417,7 +417,7 @@
       if(sel){
         ctx.strokeStyle = 'rgba(230,139,156,.85)';
         ctx.lineWidth = 2.6;
-        rrect(ctx, sel.c * CS + 2.4, sel.r * CS + 2.4, CS - 4.8, CS - 4.8, 9);
+        rrect(ctx, sel.c * CS + 1.8, sel.r * CS + 1.8, CS - 3.6, CS - 3.6, 9);
         ctx.stroke();
       }
 
@@ -433,7 +433,7 @@
         var cx = (item.c + t.ox) * CS + CS / 2;
         var cy = (item.r + t.oy) * CS + CS / 2;
         if(t.scale <= 0.01) return;
-        drawTile(ctx, t.kind, cx, cy, CS * 0.86 * t.scale, t.alpha);
+        drawTile(ctx, t.kind, cx, cy, CS * 0.96 * t.scale, t.alpha);
       });
 
       /* 粒子 */
