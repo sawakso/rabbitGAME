@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no,email=no,address=no">
+<meta name="theme-color" content="#eaf1f2">
+<title>最后一格</title>
+<style>
+/* ============================================================
+   最后一格 · 样式
+   颜色集中在 :root 变量里；棋盘尺寸由 JS 通过 --board-size 控制，
+   保证任何手机竖屏都能把整个棋盘放进一屏。
+   ============================================================ */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --paper:#f8f6f0;      --paper2:#e9eff1;
+  --ink:#46546a;        --ink-soft:#8a96a4;   --ink-faint:#a9b3bc;
+  --card:#fffcf6;       --line:rgba(66,76,92,.62);
+  --free:#f7f6f2;       --free-line:#c6cdd3;
+  --wall:#cdd4d8;       --wall-line:#b2bcc3;
+  --next:#fff3b5;       --next-line:#d9be6a;  --next-ink:#a8842f;
+  --step2:#f0e6cf;      --step2-line:#cfc0a0; --step2-ink:#9c8760;
+  --step3:#e7edf1;      --step3-line:#bdc7ce; --step3-ink:#7d8d9e;
+  --now:#d98b9b;        --now-line:#b0707f;
+  --done:#e5ecef;       --done-line:#b6c1ca;
+  --trail:rgba(122,142,166,.40);
+  --trail-hot:rgba(217,139,155,.66);
+  --board-size:92vw;
+}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,Arial,sans-serif;
+  color:var(--ink);
+  background:linear-gradient(168deg,var(--paper),var(--paper2));
+  -webkit-user-select:none;user-select:none;
+  touch-action:manipulation;
+  overflow:hidden;
+}
+body.ended{background:linear-gradient(168deg,#f7f4ee,#e6ecee)}
+.app{
+  height:100%;
+  max-width:460px;margin:0 auto;
+  padding:calc(8px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+body.ended .app{justify-content:flex-start}
+
+/* ---------- 标题卡 ---------- */
+.head{
+  position:relative;width:100%;padding:9px 16px 8px;
+  background:rgba(255,252,246,.94);
+  border:2px solid var(--line);border-radius:17px;
+  box-shadow:4px 5px 0 rgba(55,65,80,.13);
+  transform:rotate(-.4deg);text-align:center;
+}
+.head:after{
+  content:"";position:absolute;left:12px;right:12px;bottom:6px;height:2px;
+  background:rgba(80,100,120,.18);transform:rotate(.5deg);
+}
+.rabbit{position:absolute;left:13px;top:-19px;font-size:24px;transform:rotate(-7deg)}
+.title{font-size:21px;font-weight:800;letter-spacing:2px;color:#394b62;line-height:1.2}
+.hint{margin-top:2px;font-size:11px;color:var(--ink-soft)}
+
+/* ---------- 数据条 ---------- */
+.stats{width:100%;display:flex;gap:7px}
+.stat{
+  flex:1;padding:4px 4px 5px;text-align:center;
+  background:rgba(255,252,246,.84);
+  border:1.5px solid #b8c0c7;border-radius:12px;
+  box-shadow:2px 3px 0 rgba(55,65,80,.07);
+}
+.stat small{display:block;font-size:9.5px;color:var(--ink-soft);letter-spacing:.5px}
+.stat b{font-size:16px;color:#4b5b70}
+
+/* ---------- 棋盘 ---------- */
+.board-wrap{display:flex;justify-content:center}
+#board{
+  position:relative;
+  width:var(--board-size);height:var(--board-size);
+  display:grid;grid-template-columns:repeat(8,1fr);
+  gap:calc(var(--board-size)*.0135);
+  padding:calc(var(--board-size)*.019);
+  background:rgba(255,252,246,.84);
+  border:2px solid var(--line);
+  border-radius:calc(var(--board-size)*.05);
+  box-shadow:5px 6px 0 rgba(55,65,80,.12),0 10px 22px rgba(30,40,55,.07);
+  font-size:calc(var(--board-size)*.062);
+}
+.cell{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  padding:0;margin:0;overflow:hidden;
+  font-family:inherit;font-weight:800;font-size:1em;line-height:1;
+  color:#59697b;background:var(--free);
+  border:1.5px solid var(--free-line);border-radius:calc(var(--board-size)*.022);
+  transition:background .12s ease,border-color .12s ease,transform .07s ease;
+}
+.cell .num{line-height:1}
+.cell .mark{
+  position:absolute;right:7%;bottom:3%;
+  font-size:.46em;font-weight:700;opacity:.62;letter-spacing:-.02em;
+}
+.cell.is-wall{
+  background:var(--wall);border-color:var(--wall-line);
+  background-image:repeating-linear-gradient(45deg,rgba(114,128,138,.17) 0 2px,transparent 2px 5px);
+  box-shadow:inset 0 2px 3px rgba(90,105,115,.20);
+}
+.cell.is-visited{
+  background:var(--done);border-color:var(--done-line);color:#4e6076;
+  background-image:repeating-linear-gradient(45deg,rgba(120,140,160,.10) 0 2px,transparent 2px 6px);
+  text-shadow:0 0 3px rgba(255,255,255,.95),0 0 3px rgba(255,255,255,.95);
+}
+.cell.is-now{
+  background:var(--now);border-color:var(--now-line);color:#fff;
+  box-shadow:0 0 0 2px rgba(217,139,155,.30);
+  text-shadow:0 1px 2px rgba(120,60,72,.35);
+}
+.cell.l1{background:var(--next);border-color:var(--next-line)}
+.cell.l1 .mark{color:var(--next-ink)}
+.cell.l2{background:var(--step2);border-color:var(--step2-line)}
+.cell.l2 .mark{color:var(--step2-ink)}
+.cell.l3{background:var(--step3);border-color:var(--step3-line)}
+.cell.l3 .mark{color:var(--step3-ink)}
+.cell.tappable{cursor:pointer}
+.cell.tappable:active{transform:scale(.93)}
+.cell.bad{animation:shake .18s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-3px)}
+  75%{transform:translateX(3px)}
+}
+.cell.is-tail{box-shadow:0 0 0 2.5px rgba(217,139,155,.85) inset}
+
+/* 走过的路径连线（很淡，只做视觉联系） */
+#trail{position:absolute;inset:0;pointer-events:none}
+.trail-seg{
+  position:absolute;height:calc(var(--board-size)*.018);
+  border-radius:999px;background:var(--trail);opacity:.55;
+  transform-origin:0 50%;
+}
+.trail-seg.hot{background:var(--trail-hot);opacity:1}
+#trail.strong .trail-seg{opacity:1}
+
+/* ---------- 图例 / 提示 / 按钮 ---------- */
+.legend{
+  width:100%;display:flex;flex-wrap:wrap;justify-content:center;
+  gap:3px 9px;padding:5px 8px;
+  background:rgba(255,252,246,.74);
+  border:1px solid #c9d0d5;border-radius:11px;
+  font-size:10.5px;color:#7b8794;
+}
+.legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.sw{
+  width:13px;height:13px;border-radius:4px;border:1.2px solid var(--free-line);
+  background:var(--free);display:inline-block;flex:none;
+  font-style:normal;font-size:9px;font-weight:800;color:#4e6076;
+  text-align:center;line-height:11px;
+}
+.sw.l1{background:var(--next);border-color:var(--next-line)}
+.sw.l2{background:var(--step2);border-color:var(--step2-line)}
+.sw.l3{background:var(--step3);border-color:var(--step3-line)}
+.sw.done{background:var(--done);border-color:var(--done-line)}
+.sw.wall{background:var(--wall);border-color:var(--wall-line)}
+.sw.now{background:var(--now);border-color:var(--now-line)}
+
+.message{
+  min-height:34px;display:flex;align-items:center;justify-content:center;
+  font-size:12.5px;line-height:1.35;color:#687789;text-align:center;padding:0 4px;
+}
+.controls{width:100%;display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+.ctl{
+  font-family:inherit;font-size:12.5px;color:#4e5e70;cursor:pointer;
+  padding:8px 12px;border-radius:999px;
+  border:1.5px solid #86929e;background:#fffdf8;
+  box-shadow:2.5px 2.5px 0 rgba(55,65,80,.10);
+}
+.ctl:active{transform:translate(2px,2px);box-shadow:.5px .5px 0 rgba(55,65,80,.10)}
+.ctl.primary{background:#52657a;color:#fff;border-color:#41505f}
+.footer{font-size:9.5px;color:var(--ink-faint);letter-spacing:.6px}
+
+/* ---------- 教程 ---------- */
+.modal{
+  position:fixed;inset:0;z-index:30;display:none;
+  align-items:center;justify-content:center;padding:14px;
+  background:rgba(38,45,54,.42);
+}
+.modal.is-open{display:flex}
+.tut{
+  width:min(92vw,360px);max-height:92vh;overflow-y:auto;
+  padding:18px 18px 15px;text-align:center;
+  background:#fffdf8;border:2px solid #64707d;border-radius:20px;
+  box-shadow:6px 7px 0 rgba(55,65,80,.14);
+  animation:pop .16s ease-out;
+}
+@keyframes pop{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.tut-face{font-size:29px;line-height:1.1}
+.tut h2{margin:5px 0 9px;font-size:20px;color:#3f5065;letter-spacing:1px}
+.tut-list{list-style:none;margin:0;padding:0;text-align:left}
+.tut-list li{
+  display:flex;align-items:center;gap:7px;
+  margin:0 0 7px;font-size:13px;line-height:1.35;color:#5c6b7d;
+}
+.tut-list b{
+  flex:none;width:17px;height:17px;border-radius:50%;
+  background:#eef2f4;border:1.2px solid #c2ccd2;color:#6d7c8c;
+  font-size:10px;line-height:15px;text-align:center;font-weight:800;
+}
+.tut-list .sw{width:14px;height:14px;line-height:12px}
+.tut-list .mini{
+  flex:none;width:19px;height:19px;border-radius:5px;line-height:17px;text-align:center;
+  background:var(--done);border:1.2px solid var(--done-line);
+  font-size:11px;font-weight:800;color:#4e6076;
+}
+.tut-list .mini.now{background:var(--now);border-color:var(--now-line);color:#fff}
+.tut-note{margin:2px 0 11px;font-size:11px;color:#98a3ad;text-align:left}
+.go{
+  width:100%;padding:11px;border:0;border-radius:999px;cursor:pointer;
+  background:#52657a;color:#fff;font-size:15.5px;font-family:inherit;
+  box-shadow:0 3px 0 #3d4b5b;
+}
+.go:active{transform:translateY(2px);box-shadow:0 1px 0 #3d4b5b}
+
+/* ---------- 结算（底部面板，棋盘仍然可见） ---------- */
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;display:none;
+  justify-content:center;padding:0 10px calc(10px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,rgba(233,239,241,.98) 62%,rgba(233,239,241,0));
+  pointer-events:none;
+}
+.sheet.is-open{display:flex}
+.sheet-card{
+  width:min(96vw,400px);padding:12px 14px 13px;text-align:center;
+  pointer-events:auto;
+  background:#fffdf8;border:2px solid #64707d;border-radius:18px;
+  box-shadow:5px 6px 0 rgba(55,65,80,.14);
+  animation:pop .18s ease-out;
+}
+.sheet-face{font-size:26px;line-height:1.1}
+.sheet h2{margin:2px 0 3px;font-size:18px;color:#3f5065}
+.sheet-text{margin:0 0 8px;font-size:12.5px;line-height:1.45;color:#687789}
+.sheet-stats{display:flex;gap:7px;margin-bottom:9px}
+.sheet-stat{
+  flex:1;padding:5px 4px;border-radius:11px;
+  background:#f4f7f8;border:1.2px solid #ced7dc;
+}
+.sheet-stat small{display:block;font-size:9.5px;color:var(--ink-soft)}
+.sheet-stat b{font-size:14px;color:#4b5b70}
+.sheet-btns{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+.sheet-btns .ctl{font-size:12px;padding:8px 11px}
+</style>
+</head>
+
+<body>
+<div class="app" id="app">
+  <div class="head">
+    <div class="rabbit">૮₍ ˶ᵔ ᵕ ᵔ˶ ₎ა</div>
+    <div class="title">最后一格</div>
+    <div class="hint">提前看三步，决定你现在走哪里</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><small>当前步</small><b id="stat-step">0</b></div>
+    <div class="stat"><small>剩余</small><b id="stat-left">0</b></div>
+    <div class="stat"><small>最高步数</small><b id="stat-best">0</b></div>
+  </div>
+
+  <div class="board-wrap" id="board-wrap">
+    <div id="board"><div id="trail"></div></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw now"></i>脚下</span>
+    <span><i class="sw l1"></i>黄＝下一步</span>
+    <span><i class="sw l2"></i>米＝第2步</span>
+    <span><i class="sw l3"></i>灰＝第3步</span>
+    <span><i class="sw done">7</i>已走过＝步数</span>
+    <span><i class="sw wall"></i>障碍</span>
+  </div>
+
+  <div class="message" id="message">点任意一个空格开始</div>
+
+  <div class="controls">
+    <button class="ctl primary" id="btn-new">↻ 再来一局</button>
+    <button class="ctl" id="btn-retry">⟲ 重新挑战</button>
+    <button class="ctl" id="btn-help">? 教程</button>
+    <button class="ctl" id="btn-sound">♪ 音效：开</button>
+  </div>
+
+  <div class="footer">✦ 只有一种操作：点一个格子 ✦</div>
+</div>
+
+<div class="sheet" id="result">
+  <div class="sheet-card">
+    <div class="sheet-face" id="res-face">૮₍ ˶ᵔ ᵕ ᵔ˶ ₎ა</div>
+    <h2 id="res-title">通关啦</h2>
+    <p class="sheet-text" id="res-text"></p>
+    <div class="sheet-stats">
+      <div class="sheet-stat"><small>本局步数</small><b id="res-step">0</b></div>
+      <div class="sheet-stat"><small>本局结果</small><b id="res-result">—</b></div>
+      <div class="sheet-stat"><small>最高步数</small><b id="res-best">0</b></div>
+      <div class="sheet-stat"><small>最长连击</small><b id="res-streak">0</b></div>
+    </div>
+    <div class="sheet-btns">
+      <button class="ctl" id="btn-route">👀 查看路线</button>
+      <button class="ctl primary" id="btn-again">↻ 再来一局</button>
+      <button class="ctl" id="btn-replay">⟲ 重新挑战</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="tutorial">
+  <div class="tut">
+    <div class="tut-face">૮₍ ˶ᵔ ᵕ ᵔ˶ ₎ა</div>
+    <h2>只要点格子</h2>
+    <ul class="tut-list">
+      <li><b>1</b><span>点一个格子开始。</span></li>
+      <li><b>2</b><span><i class="sw l1"></i> 黄色是下一步。</span></li>
+      <li><b>3</b><span><i class="sw l2"></i> <i class="sw l3"></i> 米色、灰色是未来两步。</span></li>
+      <li><b>4</b><span><i class="mini">7</i> 已经走过的格子不能再走。</span></li>
+      <li><b>5</b><span><i class="mini now"></i> 提前看三步，别把自己逼进死路。</span></li>
+    </ul>
+    <p class="tut-note">地图一定有解：走不出来，一定是路线选错了。</p>
+    <button class="go" id="btn-start">开始游戏</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+ * 《最后一格》· 单文件实现
+ *
+ * 模块划分（从上到下）：
+ *   CONFIG        集中配置（难度/尺寸/生成参数/存档 key），代码里不再出现魔法数字
+ *   PathFinder    网格图 + 自避路径求解（纯逻辑，碰不到 DOM）
+ *   MapGenerator  生成“必然有解 + 有岔路可骗”的地图（纯逻辑）
+ *   PreviewSystem 未来三步预览（纯逻辑）
+ *   GameState     玩家路线与状态机（纯逻辑）
+ *   Storage       localStorage 安全封装（不可用时自动降级到内存）
+ *   Sfx           Audio 音效（Web Audio 合成，无音频文件，可关）
+ *   Renderer      只负责把状态画到 DOM
+ *   Tutorial      教程显隐（第一次自动显示，之后可手动打开）
+ *   Controller    唯一的胶水层：点击 → 状态 → 音效/存档/重绘
+ * ============================================================ */
+/* ==#region PURE-LOGIC== 以下到 #endregion 之间是纯逻辑：不碰 DOM、不碰 localStorage，
+   tests/logic.test.mjs 会把这一段单独抽出来做生成质量与难度模拟。 */
+
+const SAVE_VERSION = 1;
+
+const CONFIG = {
+  ACTIVE_DIFFICULTY: 'NORMAL',
+  /* 难度参数：以后加关卡只在这里加一项 */
+  DIFFICULTIES: {
+    NORMAL: {
+      BOARD_SIZE: 8,          // 棋盘边长
+      GOAL_STEP: 16,          // 走满多少格算通关（tests/tune.mjs 可以扫参数）
+      ROUTE_SLACK: 6,         // 主干路线比目标多留几格
+      WALL_RATE: 0.26,        // 障碍占比（用来决定空地的目标数量）
+      BRANCH_RATE: 0.50,      // 主干上每个格子长出岔路的概率
+      DEAD_END_RATE: 0.62,    // 岔路里“死路”的比例（其余是能绕回去的捷径）
+      BRANCH_MIN_LEN: 2,      // 死路岔路最短
+      BRANCH_MAX_LEN: 5,      // 死路岔路最长（未来三步刚好能看出苗头）
+      BRIDGE_MIN_ROUTE_GAP: 5 // 捷径格必须连接主干的哪一段之外
+    }
+  },
+  /* 生成器与求解器的通用参数 */
+  PREVIEW_DEPTH: 3,           // 预览未来几步
+  MAP_MAX_ATTEMPTS: 18,       // 一张地图最多重掷几次
+  ROUTE_TRY_ROUNDS: 60,       // 主干路线最多重试几次
+  ROUTE_RANDOMNESS: 0.22,     // 主干随机性
+  MAP_MIN_OPEN: 32,           // 空地少于这个数就重掷
+  WALL_FIX_PASSES: 6,         // “保证有解”的修补轮数
+  MIN_SLACK_AFTER_FIX: 4,     // 修补后至少要比目标多留几格
+  SOLVER_NODE_BUDGET: 6000,   // 单次求解最多展开多少节点
+  SOLVER_RESTARTS: 3,         // 单次求解最多重开几次
+  SOLVER_JITTER: 0.7,         // 求解排序抖动（保证不同地图手感不一样）
+  TAIL_STEPS: 5,              // 结算时高亮最后几步
+  MIN_SIZE: 224,              // 棋盘最小像素尺寸
+  MAX_SIZE: 430,              // 棋盘最大像素尺寸
+  STORAGE: {
+    tutorial: 'lastCell_tutorial_seen',
+    bestStep: 'lastCell_best_step',
+    bestStreak: 'lastCell_best_streak',
+    streak: 'lastCell_streak',
+    sound: 'lastCell_sound',
+    lastGame: 'lastCell_last_game',
+    liveGame: 'lastCell_state'
+  }
+};
+
+const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+const kOf = function (r, c) { return r + '_' + c; };
+const unKey = function (k) {
+  const i = k.indexOf('_');
+  return { r: +k.slice(0, i), c: +k.slice(i + 1) };
+};
+const diffCfg = function () { return CONFIG.DIFFICULTIES[CONFIG.ACTIVE_DIFFICULTY]; };
+const randInt = function (min, max) { return min + Math.floor(Math.random() * (max - min + 1)); };
+const pickOne = function (arr) { return arr[Math.floor(Math.random() * arr.length)]; };
+const shuffled = function (arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+};
+
+/* ---------------- PathFinder ---------------- */
+const PathFinder = (function () {
+  function inBoard(r, c, size) { return r >= 0 && c >= 0 && r < size && c < size; }
+
+  function neighborKeys(k, size) {
+    const p = unKey(k), out = [];
+    for (let d = 0; d < DIRS.length; d++) {
+      const nr = p.r + DIRS[d][0], nc = p.c + DIRS[d][1];
+      if (inBoard(nr, nc, size)) out.push(kOf(nr, nc));
+    }
+    return out;
+  }
+
+  function openNeighbors(k, walls, size) {
+    const all = neighborKeys(k, size), out = [];
+    for (let i = 0; i < all.length; i++) if (!walls.has(all[i])) out.push(all[i]);
+    return out;
+  }
+
+  function openDegree(k, openSet, size) {
+    const all = neighborKeys(k, size);
+    let n = 0;
+    for (let i = 0; i < all.length; i++) if (openSet.has(all[i])) n++;
+    return n;
+  }
+
+  /* 在 openSet 里，k 除 exceptKey 之外还挨着几个空格 */
+  function degreeExcept(k, exceptKey, openSet, size) {
+    const all = neighborKeys(k, size);
+    let n = 0;
+    for (let i = 0; i < all.length; i++) {
+      const nk = all[i];
+      if (nk !== exceptKey && openSet.has(nk)) n++;
+    }
+    return n;
+  }
+
+  /**
+   * 从 startKey 出发，找一条长度恰好 length 格的自避路径（不重复进入同一格）。
+   * 返回路径数组（找到）或 null（没找到 / 不存在）。
+   * 用“随机化 DFS + Warnsdorff 排序（优先走后续出路最少的格子）”，
+   * 找到的路径同时是存在性的证据 —— 所以“保证有解”不是估计，是构造。
+   */
+  function findWalk(startKey, walls, size, length) {
+    if (length <= 0) return [];
+    const total = size * size;
+    if (walls.has(startKey)) return null;
+    if (total - walls.size < length) return null;
+
+    const visited = new Set();
+    const path = [];
+    for (let attempt = 0; attempt < CONFIG.SOLVER_RESTARTS; attempt++) {
+      visited.clear();
+      path.length = 0;
+      const budget = { left: CONFIG.SOLVER_NODE_BUDGET };
+      if (dfs(startKey, budget)) return path.slice();
+    }
+    return null;
+
+    function onward(nk) {
+      const all = neighborKeys(nk, size);
+      let n = 0;
+      for (let i = 0; i < all.length; i++) {
+        const m = all[i];
+        if (!walls.has(m) && !visited.has(m)) n++;
+      }
+      return n;
+    }
+
+    function dfs(k, budget) {
+      visited.add(k);
+      path.push(k);
+      if (path.length >= length) return true;
+      if (budget.left <= 0) { path.pop(); visited.delete(k); return false; }
+      budget.left--;
+
+      const cands = [];
+      const all = neighborKeys(k, size);
+      for (let i = 0; i < all.length; i++) {
+        const nk = all[i];
+        if (walls.has(nk) || visited.has(nk)) continue;
+        cands.push({ k: nk, s: onward(nk) + Math.random() * CONFIG.SOLVER_JITTER });
+      }
+      cands.sort(function (a, b) { return a.s - b.s; });
+
+      for (let i = 0; i < cands.length; i++) {
+        if (dfs(cands[i].k, budget)) return true;
+        if (budget.left <= 0) break;
+      }
+      path.pop();
+      visited.delete(k);
+      return false;
+    }
+  }
+
+  return {
+    inBoard: inBoard,
+    neighborKeys: neighborKeys,
+    openNeighbors: openNeighbors,
+    openDegree: openDegree,
+    degreeExcept: degreeExcept,
+    findWalk: findWalk
+  };
+})();
+
+/* ---------------- MapGenerator ---------------- */
+const MapGenerator = (function () {
+  function allKeys(size) {
+    const out = [];
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) out.push(kOf(r, c));
+    return out;
+  }
+
+  /* Warnsdorff：优先选“后续出路最少”的格子，路线会被拉得又长又绕 */
+  function routeScore(r, c, used, size) {
+    let s = 0;
+    for (let d = 0; d < DIRS.length; d++) {
+      const nr = r + DIRS[d][0], nc = c + DIRS[d][1];
+      if (!PathFinder.inBoard(nr, nc, size)) continue;
+      if (!used.has(kOf(nr, nc))) s++;
+    }
+    if (r === 0 || c === 0 || r === size - 1 || c === size - 1) s += 1;
+    return s;
+  }
+
+  /* 1) 先生成一条完整主干路线 */
+  function growRoute(size, want) {
+    let best = null;
+    for (let round = 0; round < CONFIG.ROUTE_TRY_ROUNDS; round++) {
+      const startR = randInt(0, size - 1), startC = randInt(0, size - 1);
+      const path = [kOf(startR, startC)];
+      const used = new Set(path);
+      while (path.length < want) {
+        const cur = unKey(path[path.length - 1]);
+        const opts = [];
+        for (let d = 0; d < DIRS.length; d++) {
+          const nr = cur.r + DIRS[d][0], nc = cur.c + DIRS[d][1];
+          if (!PathFinder.inBoard(nr, nc, size)) continue;
+          const nk = kOf(nr, nc);
+          if (used.has(nk)) continue;
+          opts.push({ k: nk, s: routeScore(nr, nc, used, size) });
+        }
+        if (!opts.length) break;
+        opts.sort(function (a, b) { return a.s - b.s; });
+        let take = opts[0];
+        if (Math.random() < CONFIG.ROUTE_RANDOMNESS && opts.length > 1) take = opts[1];
+        path.push(take.k);
+        used.add(take.k);
+      }
+      if (!best || path.length > best.length) best = path;
+      if (path.length >= want) return path;
+    }
+    return best;
+  }
+
+  /* 2) 死路岔路：往外伸 2~5 格，尽头一定是死路 */
+  function growDeadEnd(anchorKey, open, size) {
+    const a = unKey(anchorKey);
+    const heads = shuffled(PathFinder.neighborKeys(anchorKey, size).filter(function (k) {
+      return !open.has(k) && PathFinder.degreeExcept(k, anchorKey, open, size) === 0;
+    }));
+    if (!heads.length) return 0;
+
+    let cur = heads[0];
+    let len = 0;
+    const want = randInt(diffCfg().BRANCH_MIN_LEN, diffCfg().BRANCH_MAX_LEN);
+    while (cur && len < want) {
+      open.add(cur);
+      len++;
+      const nexts = shuffled(PathFinder.neighborKeys(cur, size).filter(function (k) {
+        return !open.has(k) && PathFinder.degreeExcept(k, cur, open, size) === 0;
+      }));
+      cur = nexts.length ? nexts[0] : null;
+    }
+    return len;
+  }
+
+  /* 3) 捷径格：一个空格同时贴着主干里相隔很远的两个格子 → 走出环路，路就“活”了 */
+  function placeBridge(anchorKey, open, size, routeIndex) {
+    const cands = shuffled(PathFinder.neighborKeys(anchorKey, size).filter(function (k) {
+      return !open.has(k);
+    }));
+    const anchorIdx = routeIndex[anchorKey];
+    for (let i = 0; i < cands.length; i++) {
+      const near = PathFinder.neighborKeys(cands[i], size);
+      for (let j = 0; j < near.length; j++) {
+        const nk = near[j];
+        if (!(nk in routeIndex)) continue;
+        if (Math.abs(routeIndex[nk] - anchorIdx) >= diffCfg().BRIDGE_MIN_ROUTE_GAP) {
+          open.add(cands[i]);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /* 4) 补齐空地：优先延长只有 1 个出口的格子，保持“迷宫感”，同时制造诱饵 */
+  function topUpOpen(open, size) {
+    const target = Math.round(size * size * (1 - diffCfg().WALL_RATE));
+    let guard = size * size * 3;
+    while (open.size < target && guard-- > 0) {
+      const cands = [];
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const k = kOf(r, c);
+          if (open.has(k)) continue;
+          const d = PathFinder.openDegree(k, open, size);
+          if (d === 0) continue;
+          cands.push({ k: k, d: d });
+        }
+      }
+      if (!cands.length) break;
+      cands.sort(function (a, b) { return a.d - b.d; });
+      const bestD = cands[0].d;
+      const pool = cands.filter(function (x) { return x.d === bestD; });
+      open.add(pickOne(pool).k);
+    }
+  }
+
+  /**
+   * 5) 收尾 + “保证有解”：
+   *    对每一块空地都验证“从这里出发能不能走满 GOAL_STEP 格”。
+   *    验证不了的格子直接变成障碍 —— 于是玩家第一格点哪里都不会开局无解，
+   *    任何一次失败都只能是玩家自己把路走死了。（找不到的路径是保守判定，不会误判成有解）
+   */
+  function finalize(open, size, goal, route) {
+    const walls = new Set();
+    const all = allKeys(size);
+    for (let i = 0; i < all.length; i++) if (!open.has(all[i])) walls.add(all[i]);
+    if (open.size < CONFIG.MAP_MIN_OPEN || open.size < goal + CONFIG.MIN_SLACK_AFTER_FIX) return null;
+
+    for (let pass = 0; pass < CONFIG.WALL_FIX_PASSES; pass++) {
+      const bounds = new Map();  // 本轮内有效（本轮不改变 walls）
+      const bad = [];
+      const cells = Array.from(open);
+      for (let i = 0; i < cells.length; i++) {
+        const k = cells[i];
+        if ((bounds.get(k) || 0) >= goal) continue;
+        const walk = PathFinder.findWalk(k, walls, size, goal);
+        if (!walk) { bad.push(k); continue; }
+        for (let j = 0; j < walk.length; j++) {
+          const bound = walk.length - j;
+          if ((bounds.get(walk[j]) || 0) < bound) bounds.set(walk[j], bound);
+        }
+      }
+      if (!bad.length) {
+        return { size: size, goal: goal, walls: walls, route: route, openCount: open.size };
+      }
+      if (open.size - bad.length < goal + CONFIG.MIN_SLACK_AFTER_FIX) return null;
+      for (let i = 0; i < bad.length; i++) { open.delete(bad[i]); walls.add(bad[i]); }
+    }
+    return null;
+  }
+
+  function carveOnce(size, goal) {
+    const route = growRoute(size, goal + diffCfg().ROUTE_SLACK);
+    if (!route || route.length < goal) return null;
+
+    const routeIndex = {};
+    for (let i = 0; i < route.length; i++) routeIndex[route[i]] = i;
+
+    const open = new Set(route);
+    for (let i = 1; i < route.length - 1; i++) {
+      if (Math.random() > diffCfg().BRANCH_RATE) continue;
+      const anchor = route[i];
+      if (Math.random() < diffCfg().DEAD_END_RATE) {
+        growDeadEnd(anchor, open, size);
+      } else if (!placeBridge(anchor, open, size, routeIndex)) {
+        growDeadEnd(anchor, open, size);   // 找不到合适的捷径就退化成死路
+      }
+    }
+    topUpOpen(open, size);
+    return open;
+  }
+
+  function generate() {
+    const size = diffCfg().BOARD_SIZE;
+    const goal = diffCfg().GOAL_STEP;
+    for (let attempt = 0; attempt < CONFIG.MAP_MAX_ATTEMPTS; attempt++) {
+      const open = carveOnce(size, goal);
+      if (!open) continue;
+      const board = finalize(open, size, goal, null);
+      if (board) return board;
+    }
+    /* 兜底：不放障碍的全开棋盘，一定满足“每格都能走满目标步数” */
+    const open = new Set(allKeys(size));
+    const board = finalize(open, size, goal, null);
+    if (board) return board;
+    return { size: size, goal: Math.min(goal, size * size), walls: new Set(), route: null, openCount: size * size };
+  }
+
+  /* 存档用：把障碍压成 0/1 字符串 */
+  function wallsToBits(walls, size) {
+    let s = '';
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) s += walls.has(kOf(r, c)) ? '1' : '0';
+    return s;
+  }
+  function bitsToWalls(bits, size) {
+    const walls = new Set();
+    if (typeof bits !== 'string' || bits.length !== size * size) return null;
+    for (let i = 0; i < bits.length; i++) {
+      if (bits[i] === '1') walls.add(kOf(Math.floor(i / size), i % size));
+    }
+    return walls;
+  }
+
+  return { generate: generate, wallsToBits: wallsToBits, bitsToWalls: bitsToWalls, allKeys: allKeys };
+})();
+
+/* ---------------- PreviewSystem ---------------- */
+const PreviewSystem = (function () {
+  /**
+   * 未来三步预览。
+   * 返回 { layers:[Set,Set,Set], byKey:Map(格子→最近的层), next:Set(唯一合法下一步) }
+   * 同一个格子同时属于多层时只保留最近的一层。
+   */
+  function compute(state, depth) {
+    const layers = [];
+    const byKey = new Map();
+    const empty = { layers: layers, byKey: byKey, next: new Set() };
+    if (!state || !state.current) return empty;
+
+    let frontier = [state.current];
+    for (let d = 1; d <= depth; d++) {
+      const next = new Set();
+      for (let i = 0; i < frontier.length; i++) {
+        const nbrs = PathFinder.openNeighbors(frontier[i], state.walls, state.size);
+        for (let j = 0; j < nbrs.length; j++) {
+          const nk = nbrs[j];
+          if (state.visited.has(nk) || byKey.has(nk)) continue;
+          byKey.set(nk, d);
+          next.add(nk);
+        }
+      }
+      layers.push(next);
+      frontier = Array.from(next);
+      if (!next.size) break;
+    }
+    while (layers.length < depth) layers.push(new Set());
+    return { layers: layers, byKey: byKey, next: layers[0] };
+  }
+
+  return { compute: compute };
+})();
+
+/* ---------------- GameState ---------------- */
+const GameState = (function () {
+  function create(map, mapId) {
+    return {
+      mapId: mapId || 1,
+      size: map.size,
+      goal: map.goal,
+      walls: map.walls,
+      current: null,
+      step: 0,
+      status: 'ready',              // ready | playing | win | lose
+      visited: new Set(),
+      order: [],                    // 真实行动顺序（visitedOrder 的数组形式）
+      orderIndex: new Map(),        // "r_c" → 第几步
+      loseStep: 0
+    };
+  }
+
+  function legalNext(state) { return PreviewSystem.compute(state, 1).next; }
+  function preview(state) { return PreviewSystem.compute(state, CONFIG.PREVIEW_DEPTH); }
+
+  function commit(state, k) {
+    state.step++;
+    state.visited.add(k);
+    state.order.push(k);
+    state.orderIndex.set(k, state.step);
+  }
+
+  function settle(state, code) {
+    if (state.step >= state.goal) { state.status = 'win'; return { ok: true, code: 'win' }; }
+    if (legalNext(state).size === 0) {
+      state.status = 'lose';
+      state.loseStep = state.step;
+      return { ok: true, code: 'lose' };
+    }
+    return { ok: true, code: code };
+  }
+
+  /** 唯一的操作入口：点一个格子。返回 { ok, code } */
+  function tap(state, r, c) {
+    if (state.status === 'win' || state.status === 'lose') return { ok: false, code: 'over' };
+    const k = kOf(r, c);
+    if (state.walls.has(k)) return { ok: false, code: 'wall' };
+
+    if (state.status === 'ready') {
+      // 开局：每块空地都被验证过能走满目标步数，所以点哪里都行
+      state.current = k;
+      commit(state, k);
+      state.status = 'playing';
+      return settle(state, 'start');
+    }
+    if (state.visited.has(k)) return { ok: false, code: 'visited' };
+    if (!legalNext(state).has(k)) return { ok: false, code: 'illegal' };
+
+    state.current = k;
+    commit(state, k);
+    return settle(state, 'move');
+  }
+
+  function toSave(state) {
+    return {
+      v: SAVE_VERSION,
+      mapId: state.mapId,
+      size: state.size,
+      goal: state.goal,
+      walls: MapGenerator.wallsToBits(state.walls, state.size),
+      order: state.order.slice(),
+      ts: Date.now()
+    };
+  }
+
+  /** 从存档恢复；任何一处不合法都返回 null，绝不因为坏存档崩掉游戏 */
+  function fromSave(save) {
+    if (!save || save.v !== SAVE_VERSION) return null;
+    const d = diffCfg();
+    if (save.size !== d.BOARD_SIZE || save.goal !== d.GOAL_STEP) return null;
+    const walls = MapGenerator.bitsToWalls(save.walls, save.size);
+    if (!walls) return null;
+    const order = Array.isArray(save.order) ? save.order : [];
+    if (!order.length) return null;
+
+    const state = create({ size: save.size, goal: save.goal, walls: walls }, save.mapId);
+    let prev = null;
+    for (let i = 0; i < order.length; i++) {
+      const k = order[i];
+      if (typeof k !== 'string' || !/^\d+_\d+$/.test(k)) return null;
+      if (walls.has(k) || state.visited.has(k)) return null;
+      if (prev) {
+        const a = unKey(prev), b = unKey(k);
+        if (Math.abs(a.r - b.r) + Math.abs(a.c - b.c) !== 1) return null;
+      }
+      commit(state, k);
+      prev = k;
+    }
+    state.current = order[order.length - 1];
+    state.status = 'playing';
+    if (state.step >= state.goal) return null;                       // 已经结束的局不恢复
+    if (legalNext(state).size === 0) return null;                    // 死局也不恢复
+    return state;
+  }
+
+  return { create: create, tap: tap, preview: preview, legalNext: legalNext, toSave: toSave, fromSave: fromSave };
+})();
+/* ==#endregion PURE-LOGIC== */
+
+/* ---------------- Storage ---------------- */
+const Storage = (function () {
+  const memory = {};
+  let usable = true;
+  try {
+    localStorage.setItem('__lastcell_probe__', '1');
+    localStorage.removeItem('__lastcell_probe__');
+  } catch (e) {
+    usable = false;   // 隐私模式 / 禁用存储：降级到内存，游戏照常玩
+  }
+
+  function raw(key) {
+    try { return usable ? localStorage.getItem(key) : (key in memory ? memory[key] : null); }
+    catch (e) { return null; }
+  }
+  function write(key, value) {
+    try {
+      if (usable) localStorage.setItem(key, value);
+      else memory[key] = value;
+    } catch (e) { /* 配额满或被拒绝：静默忽略 */ }
+  }
+  function remove(key) {
+    try {
+      if (usable) localStorage.removeItem(key);
+      delete memory[key];
+    } catch (e) { /* 忽略 */ }
+  }
+  function getBool(key, def) {
+    const v = raw(key);
+    if (v === null || v === undefined) return def;
+    return v === 'true' || v === '1';
+  }
+  function getNumber(key, def) {
+    const v = raw(key);
+    if (v === null || v === undefined) return def;
+    const n = Number(v);
+    return isFinite(n) ? n : def;
+  }
+  function getJSON(key, def) {
+    const v = raw(key);
+    if (!v) return def;
+    try {
+      const parsed = JSON.parse(v);
+      return (parsed === null || parsed === undefined) ? def : parsed;
+    } catch (e) { return def; }
+  }
+
+  return {
+    usable: usable,
+    getBool: getBool,
+    getNumber: getNumber,
+    getJSON: getJSON,
+    setBool: function (k, v) { write(k, v ? 'true' : 'false'); },
+    setNumber: function (k, v) { write(k, String(v)); },
+    setJSON: function (k, v) {
+      try { write(k, JSON.stringify(v)); } catch (e) { /* 循环引用等：忽略 */ }
+    },
+    remove: remove
+  };
+})();
+
+/* ---------------- Sfx（Audio 模块） ---------------- */
+const Sfx = (function () {
+  const VOICES = {
+    /* 普通移动：音高随步数缓慢升高，走路有推进感 */
+    move: function (step) {
+      const base = 392 * Math.pow(2, Math.min(step || 1, 24) / 28);
+      return [{ f: base, at: 0, dur: .10, type: 'sine', gain: .05, to: base * 1.16 }];
+    },
+    error: function () {
+      return [{ f: 200, at: 0, dur: .16, type: 'square', gain: .028, to: 132 }];
+    },
+    win: function () {
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      const out = [];
+      for (let i = 0; i < notes.length; i++) {
+        out.push({ f: notes[i], at: i * .09, dur: .26, type: 'triangle', gain: .05 });
+      }
+      return out;
+    },
+    lose: function () {
+      const notes = [392, 329.63, 261.63];
+      const out = [];
+      for (let i = 0; i < notes.length; i++) {
+        out.push({ f: notes[i], at: i * .14, dur: .30, type: 'sine', gain: .05, to: notes[i] * .9 });
+      }
+      return out;
+    }
+  };
+
+  let ctx = null;
+  let broken = false;
+  let enabled = true;
+
+  function ensure() {
+    if (broken) return null;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { broken = true; return null; }
+      if (!ctx) ctx = new AC();
+      if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+      return ctx;
+    } catch (e) { broken = true; return null; }
+  }
+
+  function play(kind, arg) {
+    if (!enabled) return;
+    const c = ensure();
+    if (!c) return;
+    const build = VOICES[kind];
+    if (!build) return;
+    let notes;
+    try { notes = build(arg); } catch (e) { return; }
+
+    const t0 = c.currentTime + .01;
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i];
+      try {
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = n.type || 'sine';
+        osc.frequency.setValueAtTime(n.f, t0 + n.at);
+        if (n.to) osc.frequency.exponentialRampToValueAtTime(n.to, t0 + n.at + n.dur);
+        gain.gain.setValueAtTime(.0001, t0 + n.at);
+        gain.gain.exponentialRampToValueAtTime(n.gain, t0 + n.at + .012);
+        gain.gain.exponentialRampToValueAtTime(.0001, t0 + n.at + n.dur);
+        osc.connect(gain);
+        gain.connect(c.destination);
+        osc.start(t0 + n.at);
+        osc.stop(t0 + n.at + n.dur + .03);
+      } catch (e) { /* 单个音失败不影响游戏 */ }
+    }
+  }
+
+  return {
+    play: play,
+    unlock: function () { ensure(); },
+    setEnabled: function (v) { enabled = !!v; },
+    isEnabled: function () { return enabled; }
+  };
+})();
+
+/* ---------------- Renderer ---------------- */
+const Renderer = (function () {
+  const boardEl = document.getElementById('board');
+  const trailEl = document.getElementById('trail');
+  const statStepEl = document.getElementById('stat-step');
+  const statLeftEl = document.getElementById('stat-left');
+  const statBestEl = document.getElementById('stat-best');
+  const messageEl = document.getElementById('message');
+  const appEl = document.getElementById('app');
+  const boardWrapEl = document.getElementById('board-wrap');
+  const resultEl = document.getElementById('result');
+
+  let cells = [];
+  let mountedSize = 0;
+  let routeEmphasis = false;
+  let onCellTap = null;
+  let lastState = null;
+
+  function mount(size, handler) {
+    onCellTap = handler;
+    mountedSize = size;
+    for (let i = boardEl.children.length - 1; i >= 0; i--) {
+      const child = boardEl.children[i];
+      if (child.id !== 'trail') boardEl.removeChild(child);
+    }
+    cells = new Array(size * size);
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'cell';
+        cell.dataset.r = String(r);
+        cell.dataset.c = String(c);
+        const num = document.createElement('span');
+        num.className = 'num';
+        const mark = document.createElement('span');
+        mark.className = 'mark';
+        cell.appendChild(num);
+        cell.appendChild(mark);
+        cell.addEventListener('click', onTap);
+        boardEl.appendChild(cell);
+        cells[r * size + c] = cell;
+      }
+    }
+    boardEl.appendChild(trailEl);   // 连线画在棋子之上（数字靠描白边保持清晰）
+    function onTap(ev) {
+      const t = ev.currentTarget;
+      if (onCellTap) onCellTap(Number(t.dataset.r), Number(t.dataset.c));
+    }
+  }
+
+  function fit() {
+    const kids = [];
+    for (let i = 0; i < appEl.children.length; i++) {
+      const kid = appEl.children[i];
+      if (kid === boardWrapEl || kid.offsetHeight === 0) continue;
+      kids.push(kid);
+    }
+    let used = 0;
+    for (let i = 0; i < kids.length; i++) used += kids[i].offsetHeight;
+
+    const cs = window.getComputedStyle(appEl);
+    const gap = parseFloat(cs.rowGap || cs.gap) || 8;
+    const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const sheetH = resultEl.classList.contains('is-open') ? resultEl.offsetHeight : 0;
+
+    const avail = window.innerHeight - used - padY - sheetH - gap * (kids.length + 1);
+    const size = Math.round(Math.max(CONFIG.MIN_SIZE, Math.min(window.innerWidth * .92, CONFIG.MAX_SIZE, avail)));
+    document.documentElement.style.setProperty('--board-size', size + 'px');
+    if (mountedSize) requestAnimationFrame(function () { drawTrail(lastState); });
+  }
+
+  function draw(state, preview) {
+    lastState = state;
+    for (let r = 0; r < state.size; r++) {
+      for (let c = 0; c < state.size; c++) {
+        const k = kOf(r, c);
+        const cell = cells[r * state.size + c];
+        const num = cell.firstChild;
+        const mark = cell.lastChild;
+        const wall = state.walls.has(k);
+        const idx = state.orderIndex.get(k);
+        const layer = preview.byKey.get(k);
+        const isTail = routeEmphasis && idx && (state.step - idx) < CONFIG.TAIL_STEPS;
+
+        let cls = 'cell';
+        if (wall) cls += ' is-wall';
+        else if (idx) cls += (state.current === k ? ' is-now' : ' is-visited');
+        else if (layer) cls += ' l' + layer;
+        // 开局时每块空地都可以当起点（地图保证都有解），所以它们同样可点
+        if (!wall && !idx && (preview.next.has(k) || state.status === 'ready')) cls += ' tappable';
+        if (isTail) cls += ' is-tail';
+        cell.className = cls;
+
+        num.textContent = idx ? String(idx) : '';
+        mark.textContent = (!idx && !wall && layer) ? '+' + layer : '';
+      }
+    }
+    drawTrail(state);
+    updateStats(state);
+  }
+
+  function drawTrail(state) {
+    trailEl.className = routeEmphasis ? 'strong' : '';
+    for (let i = trailEl.children.length - 1; i >= 0; i--) trailEl.removeChild(trailEl.children[i]);
+    if (!state || state.order.length < 2) return;
+
+    for (let i = 0; i < state.order.length - 1; i++) {
+      const a = state.order[i], b = state.order[i + 1];
+      const pa = unKey(a), pb = unKey(b);
+      const ea = cells[pa.r * state.size + pa.c];
+      const eb = cells[pb.r * state.size + pb.c];
+      if (!ea || !eb) continue;
+      const x1 = ea.offsetLeft + ea.offsetWidth / 2;
+      const y1 = ea.offsetTop + ea.offsetHeight / 2;
+      const x2 = eb.offsetLeft + eb.offsetWidth / 2;
+      const y2 = eb.offsetTop + eb.offsetHeight / 2;
+      const len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+      const ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+      const seg = document.createElement('i');
+      const isHot = routeEmphasis && (state.order.length - 1 - i) <= CONFIG.TAIL_STEPS;
+      seg.className = 'trail-seg' + (isHot ? ' hot' : '');
+      seg.style.left = x1 + 'px';
+      seg.style.top = y1 + 'px';
+      seg.style.width = len + 'px';
+      seg.style.transform = 'rotate(' + ang + 'deg)';
+      trailEl.appendChild(seg);
+    }
+  }
+
+  function updateStats(state) {
+    statStepEl.textContent = String(state.step);
+    statLeftEl.textContent = String(Math.max(state.goal - state.step, 0));
+    statBestEl.textContent = String(Storage.getNumber(CONFIG.STORAGE.bestStep, 0));
+  }
+
+  function say(text) { messageEl.textContent = text; }
+
+  function shake(r, c) {
+    const cell = cells[r * mountedSize + c];
+    if (!cell) return;
+    cell.classList.add('bad');
+    setTimeout(function () { cell.classList.remove('bad'); }, 200);
+  }
+
+  return {
+    mount: mount,
+    fit: fit,
+    draw: draw,
+    say: say,
+    shake: shake,
+    setRouteEmphasis: function (v) {
+      routeEmphasis = !!v;
+      if (lastState) { drawTrail(lastState); }
+    },
+    setEnded: function (v) {
+      document.body.classList.toggle('ended', !!v);
+      fit();
+    }
+  };
+})();
+
+/* ---------------- Tutorial ---------------- */
+const Tutorial = (function () {
+  const modalEl = document.getElementById('tutorial');
+
+  function open() { modalEl.classList.add('is-open'); }
+  function close() { modalEl.classList.remove('is-open'); }
+  function isOpen() { return modalEl.classList.contains('is-open'); }
+
+  return { open: open, close: close, isOpen: isOpen };
+})();
+
+/* ---------------- Controller ---------------- */
+const Controller = (function () {
+  const K = CONFIG.STORAGE;
+  const resultEl = document.getElementById('result');
+
+  let state = null;
+  let nextMapId = 1;
+
+  function startNewGame() {
+    const map = MapGenerator.generate();
+    nextMapId = Math.max(nextMapId, 1);
+    state = GameState.create(map, nextMapId++);
+    hideResult();
+    Renderer.say('点任意一个空格开始，路线就从那里出发');
+  }
+
+  function retrySameMap() {
+    state = GameState.create({ size: state.size, goal: state.goal, walls: state.walls }, state.mapId);
+    hideResult();
+    Renderer.say('同一张地图，重新走一遍');
+  }
+
+  function hideResult() {
+    if (!resultEl.classList.contains('is-open')) return;
+    resultEl.classList.remove('is-open');
+    Renderer.setRouteEmphasis(false);
+    Renderer.setEnded(false);
+  }
+
+  function refresh() {
+    Renderer.draw(state, GameState.preview(state));
+  }
+
+  function persist() {
+    if (state.status === 'playing') Storage.setJSON(K.liveGame, GameState.toSave(state));
+    else Storage.remove(K.liveGame);
+  }
+
+  function onTap(r, c) {
+    Sfx.unlock();
+    if (!state) return;
+    const res = GameState.tap(state, r, c);
+    if (!res.ok) {
+      if (res.code === 'over') return;
+      Sfx.play('error');
+      Renderer.shake(r, c);
+      if (res.code === 'wall') Renderer.say('障碍格不能走，只能点黄色格子');
+      else if (res.code === 'visited') Renderer.say('走过的格子不能再进，只能点黄色格子');
+      else Renderer.say('这一步走不到，只能点黄色格子');
+      return;
+    }
+    if (res.code === 'start') {
+      Sfx.play('move', 1);
+      Renderer.say('很好！接下来只能点黄色格子');
+    } else if (res.code === 'move') {
+      Sfx.play('move', state.step);
+      Renderer.say('看三步，再决定现在走哪一格');
+    }
+    refresh();
+    persist();
+    if (res.code === 'win') finish(true);
+    else if (res.code === 'lose') finish(false);
+  }
+
+  function finish(win) {
+    const best = Storage.getNumber(K.bestStep, 0);
+    if (state.step > best) Storage.setNumber(K.bestStep, state.step);
+
+    const streak = win ? Storage.getNumber(K.streak, 0) + 1 : 0;
+    Storage.setNumber(K.streak, streak);
+    const bestStreak = Math.max(Storage.getNumber(K.bestStreak, 0), streak);
+    Storage.setNumber(K.bestStreak, bestStreak);
+
+    Storage.setJSON(K.lastGame, {
+      step: state.step,
+      result: win ? 'win' : 'lose',
+      date: Date.now()
+    });
+    Storage.remove(K.liveGame);
+
+    if (win) Sfx.play('win');
+    else Sfx.play('lose');
+
+    document.getElementById('res-face').textContent = win ? '૮₍ ˶ᵔ ᵕ ᵔ˶ ₎ა' : '૮₍˶•⤙•˶₎ა';
+    document.getElementById('res-title').textContent = win ? '通关啦！' : '走进死路了';
+    document.getElementById('res-text').textContent = win
+      ? '你走满了 ' + state.step + ' 步，一次都没有走回头路。'
+      : '你在第 ' + state.step + ' 步把自己走进死路了：这一步之后，四周的格子都走过了。';
+    document.getElementById('res-step').textContent = String(state.step);
+    document.getElementById('res-result').textContent = win ? '通关' : '失败';
+    document.getElementById('res-best').textContent = String(Storage.getNumber(K.bestStep, 0));
+    document.getElementById('res-streak').textContent = String(Storage.getNumber(K.bestStreak, 0));
+
+    refresh();
+    resultEl.classList.add('is-open');
+    Renderer.setEnded(true);
+  }
+
+  function toggleSound() {
+    const on = !Sfx.isEnabled();
+    Sfx.setEnabled(on);
+    Storage.setBool(K.sound, on);
+    document.getElementById('btn-sound').textContent = on ? '♪ 音效：开' : '♪ 音效：关';
+    if (on) Sfx.play('move', 1);
+  }
+
+  function bind() {
+    document.getElementById('btn-new').addEventListener('click', function () {
+      Sfx.unlock(); Sfx.play('move', 1); startNewGame(); refresh(); persist();
+    });
+    document.getElementById('btn-retry').addEventListener('click', function () {
+      retrySameMap(); refresh(); persist();
+    });
+    document.getElementById('btn-again').addEventListener('click', function () {
+      startNewGame(); refresh(); persist();
+    });
+    document.getElementById('btn-replay').addEventListener('click', function () {
+      retrySameMap(); refresh(); persist();
+    });
+    document.getElementById('btn-sound').addEventListener('click', toggleSound);
+    document.getElementById('btn-help').addEventListener('click', function () { Tutorial.open(); });
+    document.getElementById('btn-start').addEventListener('click', function () {
+      Storage.setBool(K.tutorial, true);
+      Tutorial.close();
+      Sfx.unlock();
+      refresh();
+    });
+    document.getElementById('btn-route').addEventListener('click', function () {
+      const on = !resultEl.classList.contains('show-route');
+      resultEl.classList.toggle('show-route', on);
+      Renderer.setRouteEmphasis(on);
+      this.textContent = on ? '🙈 收起路线' : '👀 查看路线';
+    });
+    window.addEventListener('resize', function () { Renderer.fit(); });
+    window.addEventListener('orientationchange', function () { setTimeout(function () { Renderer.fit(); }, 120); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) persist(); });
+  }
+
+  function boot() {
+    Renderer.mount(diffCfg().BOARD_SIZE, onTap);
+    Renderer.fit();
+    bind();
+
+    const soundOn = Storage.getBool(K.sound, true);
+    Sfx.setEnabled(soundOn);
+    document.getElementById('btn-sound').textContent = soundOn ? '♪ 音效：开' : '♪ 音效：关';
+
+    const saved = Storage.getJSON(K.liveGame, null);
+    const restored = GameState.fromSave(saved);
+    if (restored) {
+      state = restored;
+      nextMapId = state.mapId + 1;
+      Renderer.say('已恢复上次的路线，接着走');
+    } else {
+      Storage.remove(K.liveGame);
+      startNewGame();
+    }
+    refresh();
+
+    // 教程只在第一次自动出现，之后可以随时用「? 教程」再打开
+    if (!Storage.getBool(K.tutorial, false)) Tutorial.open();
+  }
+
+  return { boot: boot, fit: function () { Renderer.fit(); } };
+})();
+
+Controller.boot();
+</script>
+</body>
+</html>

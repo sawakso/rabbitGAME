@@ -1,0 +1,9 @@
+# 统一换行符，避免 Windows 检出后产生无意义的大面积 diff
+* text=auto eol=lf
+
+*.html text eol=lf
+*.md   text eol=lf
+
+# 图片按二进制处理
+*.png binary
+*.jpg binary
