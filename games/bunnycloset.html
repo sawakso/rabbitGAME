@@ -85,6 +85,18 @@
   display:flex;align-items:center;justify-content:center;position:relative;
   animation:boxShake .5s ease-in-out infinite}
 @keyframes boxShake{0%,100%{transform:rotate(-3deg) scale(1)}50%{transform:rotate(3deg) scale(1.05)}}
+/* 大屏（平板 / 折叠屏 / 宽视口）：460px 的上限会让两侧空一大片、
+   棋盘显小。放宽到 640px，棋盘宽度、字号跟着吃满 */
+@media (min-width: 480px){
+  .app{width:min(100vw,640px)}
+  .sheet{width:min(92vw,640px)}
+  .top .pill b{font-size:22px}
+  .top .pill small{font-size:11px}
+  .workHead .wk small{font-size:11px}
+  .workHead .wk b{font-size:22px}
+  .workHead .wk .goalRow canvas{width:26px;height:26px}
+  .nav button{font-size:13px}
+}
 .box.pop{animation:boxPop .45s cubic-bezier(.2,1.6,.4,1) forwards}
 @keyframes boxPop{0%{transform:scale(1)}55%{transform:scale(1.24)}100%{transform:scale(1);border-style:solid}}
 .box canvas{width:78%;height:78%;display:block}
@@ -130,6 +142,8 @@
 .wk{flex:1;background:rgba(255,253,248,.94);border:2px solid var(--line);border-radius:14px;
   padding:5px 4px;text-align:center;box-shadow:2px 3px 0 var(--tap)}
 .wk small{display:block;font-size:9.5px;color:var(--ink3)}
+.wk .goalRow{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:1px}
+.wk .goalRow canvas{width:20px;height:20px;display:block}
 .wk b{font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
 .boardBox{position:relative;width:100%;padding:6px;border-radius:20px;
   background:rgba(255,252,246,.86);border:2px solid var(--line);
@@ -271,7 +285,8 @@
     <div class="workHead">
       <div class="wk"><small>剩余步数</small><b id="movesNum">20</b></div>
       <div class="wk"><small>本局收获</small><b id="gainNum">0</b></div>
-      <div class="wk"><small>最高纪录</small><b id="bestNum">0</b></div>
+      <div class="wk"><small>第 <span id="lvlNum">1</span> 关 · 目标</small>
+        <span class="goalRow"><canvas id="goalIcon"></canvas><b id="goalNum">0/6</b></span></div>
     </div>
     <div class="boardBox">
       <canvas id="m3"></canvas>
@@ -1030,6 +1045,8 @@ function itemsOf(cat){
    ============================================================ */
 var S = {
   carrots: START_CARROT,
+  level: 1,                       /* 当前进度：第几关 */
+  stars: {},                      /* { 关卡号: 星级 } */
   owned: [],
   worn: { hat:null, cloth:null, acc:null, bg:'b_dusk' },
   lastTick: Date.now(),
@@ -1986,9 +2003,48 @@ function buddyCheer(info){
   else buddySay('谢谢你～', false, true);
 }
 
-/* ---------- 采胡萝卜（三消） ---------- */
+/* ---------- 采胡萝卜（关卡制三消） ----------
+   照开心消消乐的路数：指定消除目标 + 限步 + 星级 + 固定棋盘。
+   难度平滑递增，每 5 关给一张稀有券，每 15 关一个新层次。 */
 var m3 = null;
-var round = { playing:false, gained:0, reviveUsed:false, settled:true, total:0 };
+var round = { playing:false, gained:0, reviveUsed:false, settled:true, total:0,
+              cfg:null, progress:0, movesLeft:M3_MOVES, bonus:0 };
+
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+/* 第 n 关的配置。用 n 做种子，所以每一关的萝卜种类和棋盘布局永远一样，
+   输了能「复盘」，这是三消关卡的手感基础 */
+function levelConfig(n){
+  var rng = mulberry32(n * 7919 + 1013);
+  return {
+    n: n,
+    kind: Math.floor(rng() * M3_KINDS),
+    target: Math.min(30, 6 + Math.floor(n * 0.9)),      /* L1=6 一遍必过，之后慢慢加 */
+    moves:  M3_MOVES + (n >= 8 ? 2 : 0) + (n >= 16 ? 2 : 0) + (n >= 26 ? 2 : 0)
+  };
+}
+function updateGoalUI(){
+  var cfg = round.cfg || levelConfig(S.level);
+  var lvl = $('lvlNum'), num = $('goalNum');
+  if(!lvl || !num) return;
+  lvl.textContent = cfg.n;
+  num.textContent = Math.min(round.progress, cfg.target) + '/' + cfg.target;
+  var cv = $('goalIcon');
+  if(cv){
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(22 * dpr); cv.height = Math.round(22 * dpr);
+    var c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, 22, 22);
+    drawFruit(c, cfg.kind, 11, 12, 30);
+  }
+}
 
 /* 棋盘最大高度：矮屏上保证整页放得下，不会把下面的按钮挤出屏幕 */
 function m3MaxHeight(){
@@ -2019,6 +2075,12 @@ function initM3(){
     onMatch: function(info){
       round.gained += info.gain;
       $('gainNum').textContent = round.gained;
+      if(round.cfg && info.kindCounts && round.playing){
+        round.progress += info.kindCounts[round.cfg.kind] || 0;
+        updateGoalUI();
+        /* 目标达成立刻过关 —— 剩余步数折成奖励（开心消消乐同款手法） */
+        if(round.progress >= round.cfg.target) levelComplete();
+      }
       if(info.combo >= 2){
         var el = $('combo');
         el.textContent = '连击 x' + info.combo;
@@ -2029,6 +2091,7 @@ function initM3(){
       buddyCheer(info);
     },
     onMove: function(left){
+      round.movesLeft = left;
       $('movesNum').textContent = left;
       /* 步数快用完了给个提示 */
       if(left <= 0) buddySay('用完啦…不过没关系，这些也够我开心一阵子了', false, true);
@@ -2059,16 +2122,20 @@ function startRound(){
   S.energy--;
   saveNow(); renderEnergy();
   /* 就地改字段而不是整体重新赋值，外部持有引用时才不会拿到旧对象 */
+  var cfg = levelConfig(S.level);
+  round.cfg = cfg;
   round.playing = true; round.gained = 0; round.reviveUsed = false;
   round.settled = false; round.total = 0;
+  round.progress = 0; round.movesLeft = cfg.moves; round.bonus = 0;
   buddyReset();
   lastActAt = Date.now(); idleAt = Date.now();
   $('gainNum').textContent = 0;
-  $('bestNum').textContent = S.bestRound;
+  updateGoalUI();
   setWorkBusy(true);
   GameAudio.unlock();
-  m3.start();
-  buddySay('谢谢你！我会乖乖看着你的～', false);
+  m3.setSeed(cfg.n * 48271 + 11);     /* 同一关，棋盘永远一样 */
+  m3.start(cfg.moves);
+  buddySay('第 ' + cfg.n + ' 关…帮我采 ' + cfg.target + ' 个这样的萝卜，拜托啦～', false);
   taskDone('work');
   refreshDots();
 }
@@ -2076,13 +2143,66 @@ function startRound(){
 function onRoundEnd(total){
   round.playing = false;
   round.total = total || 0;
-  if(round.total > S.bestRound){ S.bestRound = round.total; saveNow(); }
-  $('bestNum').textContent = S.bestRound;
   setWorkBusy(false);
-  GameAudio.sfx('ding');
-  buddy.cheer = 1.2; buddy.hop = 1;
-  buddySay('谢谢你陪我玩～这些可以都给我吗？', false);
-  sheetRound(round.total);
+  /* 步数用完时目标一定还没达成（达成的瞬间就走 levelComplete 了） */
+  var cfg = round.cfg || levelConfig(S.level);
+  var need = Math.max(0, cfg.target - round.progress);
+  GameAudio.sfx('bad');
+  buddySay('就差一点点了嘛…再试一次肯定行的！', false);
+  sheetRound(round.total, need);
+}
+
+/* 过关：星级按剩余步数算（开心消消乐同款），奖励立刻结清 */
+function levelComplete(){
+  var cfg = round.cfg;
+  round.playing = false;
+  setWorkBusy(false);
+  m3.setActive(false);
+  var left = Math.max(0, round.movesLeft);
+  var star = left >= Math.ceil(cfg.moves * 0.34) ? 3
+           : left >= Math.ceil(cfg.moves * 0.17) ? 2 : 1;
+  var prev = S.stars[cfg.n] || 0;
+  if(star > prev) S.stars[cfg.n] = star;
+  S.level = cfg.n + 1;
+  round.bonus = 15 + 10 * star + left * 2;      /* 每剩 1 步折 2 个胡萝卜 */
+  var gotTicket = (cfg.n % 5 === 0);            /* 每 5 关送一张必出稀有的券 */
+  var newTier = (cfg.n % 15 === 0);             /* 每 15 关一个新层次 */
+  if(newTier) round.bonus += 100;
+  if(gotTicket) S.tickets++;
+  saveNow(); renderCarrots();
+  GameAudio.sfx('win');
+  buddy.cheer = 1.5; buddy.hop = 1.4;
+  buddySay('过关啦！你也好厉害呀～', true);
+  setTimeout(function(){ sheetWin(cfg, star, left, gotTicket, newTier); }, 750);
+}
+
+function sheetWin(cfg, star, left, gotTicket, newTier){
+  var stars = '★★★';
+  var html = '<h2>第 ' + cfg.n + ' 关 · 过关啦</h2>' +
+    '<p class="starsLine"><b class="on">' + stars.slice(0, star) + '</b>' +
+    '<span class="off">' + stars.slice(star) + '</span></p>' +
+    '<p class="sub">采到 ' + round.progress + ' 个目标萝卜，还剩 ' + left + ' 步（每步折 2 胡萝卜）</p>' +
+    '<div class="resultRow">' +
+      '<div class="box"><small>本局消除</small><b>' + (round.total || m3.state().cleared) + '</b></div>' +
+      '<div class="box"><small>采到</small><b>' + round.gained + '</b></div>' +
+      '<div class="box"><small>过关奖</small><b>+' + round.bonus + '</b></div>' +
+    '</div>' +
+    (gotTicket ? '<p class="sub">每 5 关的礼物：一张<b style="color:#6C8FD8">必出稀有</b>的盲盒券！</p>' : '') +
+    (newTier ? '<p class="sub">新的层次达成了！额外 +100 胡萝卜</p>' : '') +
+    '<button class="btn primary" style="width:100%;margin-top:12px" id="nextLevel">下一关<small>消耗 1 点体力</small></button>' +
+    '<button class="sheetClose" data-close="1">先回衣橱看看</button>';
+  /* 与失败面板共用同一套兜底：不管怎么离开，这一局的收获都结清 */
+  showSheet(html, bindSheet, function(){ takeRoundHarvest(false); });
+
+  function bindSheet(){
+    var nl = $('nextLevel');
+    if(nl) nl.addEventListener('click', function(){
+      sheetOnClose = null;
+      takeRoundHarvest(false);
+      closeSheet();
+      startRound();
+    });
+  }
 }
 
 /* 收获只结算一次。所有离开结算面板的路径都必须经过这里 ——
@@ -2091,7 +2211,7 @@ function onRoundEnd(total){
 function takeRoundHarvest(loud){
   if(round.settled) return 0;
   round.settled = true;
-  var g = round.gained;
+  var g = round.gained + (round.bonus || 0);   /* 过关奖在这里一起结清 */
   S.carrots += g;
   saveNow(); renderCarrots();
   if(g > 0) toast((loud ? '收下 ' : '已收下 ') + g + ' 个胡萝卜');
@@ -2102,20 +2222,21 @@ function takeRoundHarvest(loud){
   return g;
 }
 
-function sheetRound(total){
+function sheetRound(total, need){
   total = total || 0;
-  var html = '<h2>这一局结束了</h2>' +
-    '<p class="sub">消掉 ' + total + ' 个水果，收获 ' + round.gained + ' 个胡萝卜</p>' +
+  var cfg = round.cfg || levelConfig(S.level);
+  var html = '<h2>就差 ' + Math.max(0, need) + ' 个…</h2>' +
+    '<p class="sub">第 ' + cfg.n + ' 关 · 采到 ' + round.progress + '/' + cfg.target + '，收获 ' + round.gained + ' 个胡萝卜</p>' +
     '<div class="resultRow">' +
       '<div class="box"><small>本局消除</small><b>' + total + '</b></div>' +
       '<div class="box"><small>收获</small><b>' + round.gained + '</b></div>' +
-      '<div class="box"><small>最高纪录</small><b>' + S.bestRound + '</b></div>' +
+      '<div class="box"><small>目标</small><b>' + round.progress + '/' + cfg.target + '</b></div>' +
     '</div>' +
     (round.reviveUsed
       ? '<p class="sub">这一局已经续过步了</p>'
-      : '<button class="btn ad" style="width:100%;margin-top:12px" id="reviveNow">看广告 +' + M3_REVIVE + ' 步，继续消</button>') +
-    '<button class="btn primary" style="width:100%;margin-top:10px" id="takeCarrot">收下胡萝卜</button>' +
-    '<button class="sheetClose" data-close="1">先去忙别的</button>';
+      : '<button class="btn ad" style="width:100%;margin-top:12px" id="reviveNow">看广告 +' + M3_REVIVE + ' 步，再试试</button>') +
+    '<button class="btn primary" style="width:100%;margin-top:10px" id="retryLevel">再试一次<small>消耗 1 点体力 · 棋盘和刚才一模一样</small></button>' +
+    '<button class="sheetClose" data-close="1">先收下胡萝卜</button>';
   /* 第三个参数是「无论怎么关都会执行」的收尾：兜住这一局的收益 */
   showSheet(html, bindSheet, function(){ takeRoundHarvest(false); });
 
@@ -2135,10 +2256,12 @@ function sheetRound(total){
         buddySay('太好了…可以再陪我一会儿～', false);
       });
     });
-    var tc = $('takeCarrot');
-    if(tc) tc.addEventListener('click', function(){
-      takeRoundHarvest(true);
+    var rl = $('retryLevel');
+    if(rl) rl.addEventListener('click', function(){
+      sheetOnClose = null;
+      takeRoundHarvest(false);
       closeSheet();
+      startRound();          /* 体力不够时 startRound 自己会弹出补给面板 */
     });
   }
 }
@@ -2280,7 +2403,7 @@ resizeBuddy();
 drawBuddy(0);
 renderSoundBtn();
 buddySay('拜托拜托，帮我采点胡萝卜嘛～', false, true);
-$('bestNum').textContent = S.bestRound;
+updateGoalUI();
 refreshDots();
 
 /* 导航上的三个弹层 */
@@ -2353,6 +2476,11 @@ window.__closet = {
     };
   },
   S: S,
+  levelInfo: function(){
+    var cfg = round.cfg || levelConfig(S.level);
+    return { n: cfg.n, kind: cfg.kind, target: cfg.target, moves: cfg.moves,
+             progress: round.progress, bonus: round.bonus, stars: S.stars, level: S.level };
+  },
   openBox: openBox,
   giveCarrots: function(n){ S.carrots += n; saveNow(); renderCarrots(); },
   setEnergy: function(n){ S.energy = n; S.energyAt = Date.now(); saveNow(); renderEnergy(); },

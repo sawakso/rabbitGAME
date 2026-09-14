@@ -69,6 +69,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     for(let i = 0; i < (maxMoves || 60); i++){
       const st = m3.state();
       if(st.phase === 'end' || st.moves <= 0) break;
+      /* 关卡制：目标达成立刻过关，别再往一个已经关掉的棋盘上送交换 */
+      if(!C.state().round.playing || C.sheetOpen()) break;
       const mv = m3.findMove();
       if(!mv) break;
       drag({ r:mv.r1, c:mv.c1 }, { r:mv.r2, c:mv.c2 });
@@ -153,11 +155,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   /* ---------------- 5. 打一局，看兔子反应与结算 ---------------- */
   log('');
-  log('【5】一局采胡萝卜');
+  log('【5】一整局（高关卡，走失败路径）');
+  C.S.level = 30;                     /* 目标 30 个，20 多步内采不满，走失败路径 */
   const c0 = C.S.carrots;
   C.startRound();
   await sleep(60);
   const seen = playRound();
+  C.S.level = 1;                      /* 恢复，后面的过关测试用 */
 
   ok(seen.cheer > 0, '消除时兔子有反应（触发 ' + seen.cheer + ' 次采样）');
   ok(seen.said.length >= 3, '兔子会随情况说不同的台词（收集到 ' + seen.said.length + ' 种）');
@@ -181,10 +185,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   const gained1 = C.state().round.gained;
   const total1 = m3.state().cleared;
+  await sleep(900);                   /* 过关面板有 750ms 的延迟，等它落定 */
   ok(C.sheetOpen(), '步数用完后弹出了结算面板');
   const txt = C.sheetText();
   ok(txt.indexOf('undefined') < 0, '结算面板里没有 undefined（实际文案已修好）');
-  ok(txt.indexOf('这一局结束了') >= 0, '结算面板标题正确');
+  ok(/就差|过关啦/.test(txt), '面板标题符合关卡语境：' + txt.slice(0, 18));
   ok(txt.indexOf(String(total1)) >= 0 && txt.indexOf(String(gained1)) >= 0,
      '结算数字正确：消掉 ' + total1 + ' 个、收获 ' + gained1 + ' 个');
 
@@ -200,27 +205,43 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok(rbb.top >= rsm.bottom - 2, '结算卡片里标签和数字是上下排列的');
   ok(ranim === 'none', '结算卡片没继承盲盒的抖动动画（animation-name=' + ranim + '）');
 
-  /* ---------------- 6. 收下胡萝卜 ---------------- */
+  /* ---------------- 6. 过关：星级、奖励、推进 ---------------- */
   log('');
-  log('【6】收下胡萝卜');
-  const c1 = C.S.carrots;
-  click('#takeCarrot');
-  await sleep(30);
-  ok(!C.sheetOpen(), '面板已关闭');
-  ok(Math.round(C.S.carrots - c1) === gained1, '胡萝卜 +' + gained1 + '（实际 +' + Math.round(C.S.carrots - c1) + '）');
-
-  /* ---------------- 7. 关掉面板也不能吞掉收获 ---------------- */
-  log('');
-  log('【7】用「先去忙别的」关掉结算');
+  log('【6】过关路径');
+  C.closeSheet();                     /* 第 5 节的结算面板还开着，先关掉 */
+  await sleep(60);
   C.startRound();
   await sleep(60);
   playRound();
-  const g2 = C.state().round.gained;
+  await sleep(1000);                  /* 过关面板延迟 750ms */
+  ok(C.sheetOpen(), '达标后弹出过关面板');
+  const wtxt = C.sheetText();
+  ok(wtxt.indexOf('过关啦') >= 0, '过关面板有星级与奖励');
+  const li = C.levelInfo();
+  ok(li.stars && li.stars[1] >= 1, '第 1 关记了星级：' + JSON.stringify(li.stars));
+  ok(C.S.level === 2, '关卡推进到第 2 关');
+  ok(li.bonus > 0, '过关奖励已算好（+' + li.bonus + '，含剩余步数折算）');
+  const c1 = C.S.carrots;
+  const gw = C.state().round.gained;
+  click('#sheet [data-close]');
+  await sleep(30);
+  ok(!C.sheetOpen(), '面板已关闭');
+  ok(Math.round(C.S.carrots - c1) === gw + li.bonus,
+     '收获与过关奖一起结清（' + gw + ' + ' + li.bonus + '）');
+
+  /* ---------------- 7. 关掉面板也不能吞掉收获 ---------------- */
+  log('');
+  log('【7】中途关掉结算面板');
+  C.startRound();
+  await sleep(60);
+  playRound();
+  await sleep(1000);                  /* 若过关，等面板弹出 */
+  const g2 = C.state().round.gained + (C.state().round.bonus || 0);
   const c2 = C.S.carrots;
   const closed = click('#sheet [data-close]');
   await sleep(30);
-  ok(closed && !C.sheetOpen(), '「先去忙别的」能关掉结算面板');
-  ok(Math.round(C.S.carrots - c2) === g2, '关掉面板也照样收下 ' + g2 + ' 个胡萝卜（实际 +' +
+  ok(closed && !C.sheetOpen(), '「先收下胡萝卜 / 先回衣橱」能关掉结算面板');
+  ok(Math.round(C.S.carrots - c2) === g2, '关掉面板也照样结清 ' + g2 + ' 个胡萝卜（实际 +' +
      Math.round(C.S.carrots - c2) + '）');
 
   /* ---------------- 8. 转盘关掉后不该自己弹回来 ---------------- */
@@ -425,6 +446,23 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const boardKinds = m3.state().grid;
   for(const row of boardKinds) for(const k of row) seenKind.add(k);
   ok(seenKind.size >= 4, '盘面确实在随机用多种棋子（实际出现 ' + seenKind.size + ' 种）');
+
+  /* ---------------- 13. 关卡手感：同一关布局固定 ---------------- */
+  log('');
+  log('【13】同一关棋盘固定');
+  C.S.energy = Math.max(C.S.energy, 2);   /* 前面的测试把体力耗光了，先补上 */
+  C.startRound();
+  await sleep(60);
+  const kindsA = m3.state().grid.map(row => row.join(',')).join('|');
+  m3.setActive(false);
+  C.closeSheet();
+  C.S.energy = Math.max(C.S.energy, 2);
+  C.startRound();
+  await sleep(60);
+  const kindsB = m3.state().grid.map(row => row.join(',')).join('|');
+  ok(kindsA === kindsB, '同一关重开，棋盘布局完全一致（开心消消乐的做法，输了能复盘）');
+  m3.setActive(false);
+  C.closeSheet();
 
   log('');
   log('========== 通过 ' + pass + ' 项，失败 ' + fail + ' 项 ==========');

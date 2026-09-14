@@ -38,6 +38,17 @@
     var COLS = opt.cols || 6;
     var ROWS = opt.rows || 7;
     var KINDS = opt.kinds || 5;
+    /* 可播种的随机源：关卡制需要「同一关每次进来布局一样」，
+       玩家才能复盘。不传 seed 就还是纯随机（自由模式用） */
+    var rand = Math.random;
+    function mulberry32(a){
+      return function(){
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        var t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
     var startMoves = opt.moves || 20;
     var onMatch = opt.onMatch || function(){};
     var onMove = opt.onMove || function(){};
@@ -88,7 +99,7 @@
 
     /* ---------- 棋盘 ---------- */
     function newTile(kind){ return { kind:kind, ox:0, oy:0, vy:0, scale:1, alpha:1 }; }
-    function randKind(){ return Math.floor(Math.random() * KINDS); }
+    function randKind(){ return Math.floor(rand() * KINDS); }
     function inB(r, c){ return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
 
     function buildBoard(){
@@ -235,6 +246,13 @@
       var n = clearing.length;
       combo++;
       totalCleared += n;
+      /* 按种类计数：关卡目标「采 N 个指定萝卜」要用 */
+      var kindCounts = new Array(KINDS);
+      for(var kc = 0; kc < KINDS; kc++) kindCounts[kc] = 0;
+      clearing.forEach(function(cell){
+        var t = grid[cell.r][cell.c];
+        if(t && t.kind < KINDS) kindCounts[t.kind]++;
+      });
       /* 连击加成：一次消得越多、连得越紧，收益越高 */
       var gain = n * Math.max(1, combo);
 
@@ -259,7 +277,7 @@
         });
       }
 
-      onMatch({ cleared:n, combo:combo, total:totalCleared, gain:gain });
+      onMatch({ cleared:n, combo:combo, total:totalCleared, gain:gain, kindCounts:kindCounts });
       sfx('pop', Math.min(9, combo + n - 1));
     }
 
@@ -291,7 +309,7 @@
       var kinds = [];
       for(var r = 0; r < ROWS; r++) for(var c = 0; c < COLS; c++) kinds.push(grid[r][c].kind);
       for(var i = kinds.length - 1; i > 0; i--){
-        var j = Math.floor(Math.random() * (i + 1));
+        var j = Math.floor(rand() * (i + 1));
         var tmp = kinds[i]; kinds[i] = kinds[j]; kinds[j] = tmp;
       }
       var idx = 0;
@@ -474,10 +492,10 @@
 
     /* ---------- 对外 ---------- */
     return {
-      start: function(){
+      start: function(movesOverride){
         resize();
         buildBoard();
-        moves = startMoves;
+        moves = movesOverride || startMoves;
         totalCleared = 0;
         combo = 0;
         phase = 'idle';
@@ -516,6 +534,11 @@
       cleared: function(){ return totalCleared; },
       isEnded: function(){ return phase === 'end'; },
       isBusy: function(){ return phase !== 'idle' && phase !== 'end'; },
+
+      /* 换随机种子：每关开局前调一次，同一关的棋盘就固定了 */
+      setSeed: function(n){
+        rand = mulberry32(n | 0);
+      },
 
       /* 手动推进若干时间。低帧率环境或自动化测试里用它替代 rAF */
       tick: function(dt){
