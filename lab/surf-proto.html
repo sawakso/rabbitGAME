@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#9FCEDC">
+<title>海上冲浪 · 程序化几何原型</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;
+  background:#9FCEDC;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#2F4A54}
+#c{display:block;width:100%;height:100%;touch-action:none}
+
+.hud{position:fixed;inset:0;z-index:5;pointer-events:none;
+  padding:calc(12px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))}
+.row{display:flex;gap:8px;align-items:flex-start}
+.pill{background:rgba(255,255,255,.82);border:1.5px solid rgba(47,74,84,.18);
+  border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;
+  box-shadow:0 4px 14px rgba(47,74,84,.14);backdrop-filter:blur(4px);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill small{font-weight:500;opacity:.6;font-size:11px;margin-right:3px}
+.spacer{flex:1}
+.back{pointer-events:auto;text-decoration:none;color:#2F4A54}
+
+.msg{position:absolute;left:0;right:0;top:22%;text-align:center;font-size:15px;
+  font-weight:600;color:#fff;text-shadow:0 2px 10px rgba(30,60,70,.55);opacity:0;
+  transition:opacity .25s}
+.msg.show{opacity:1}
+
+.tip{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom));
+  text-align:center;font-size:11.5px;color:rgba(255,255,255,.92);
+  text-shadow:0 2px 8px rgba(30,60,70,.5);transition:opacity .6s}
+.tip.hide{opacity:0}
+
+.over{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+  background:rgba(30,60,70,.42);backdrop-filter:blur(4px);padding:20px}
+.card{width:min(92vw,340px);background:#FFFDF8;border:2px solid #CFE0E5;border-radius:22px;
+  padding:22px 20px 18px;text-align:center;box-shadow:0 20px 50px rgba(30,60,70,.3)}
+.card h2{margin:0 0 8px;font-size:21px;color:#2F4A54}
+.card p{margin:6px 0;font-size:13px;color:#6B8790;line-height:1.7}
+.stat{display:flex;gap:9px;margin:14px 0 4px}
+.stat div{flex:1;background:#EFF6F8;border-radius:13px;padding:9px 4px}
+.stat small{display:block;font-size:10.5px;color:#8FA9B1}
+.stat b{font-size:20px;font-variant-numeric:tabular-nums}
+.btns{display:flex;gap:9px;margin-top:14px}
+.btns button,.btns a{flex:1;border:1.5px solid #A9C5CD;border-radius:999px;padding:11px 0;
+  background:#FFFDF8;color:#40606B;font-size:14px;font-weight:600;cursor:pointer;
+  text-decoration:none;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.btns .go{background:linear-gradient(180deg,#8FC7D8,#5FA6BC);border-color:#4E93A8;color:#fff}
+.hide{display:none!important}
+.note{font-size:10.5px;color:#9FB4BB;margin-top:10px;letter-spacing:.3px}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <div class="row">
+    <a class="pill back" href="../index.html">‹ 大厅</a>
+    <div class="pill"><small>金币</small><span id="coinNum">0</span></div>
+    <div class="pill"><small>距离</small><span id="distNum">0</span><small>m</small></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="msg" id="msg"></div>
+  <div class="tip" id="tip">左右滑动或按 ← → 控制方向 · 自动前进</div>
+</div>
+
+<div class="over hide" id="over">
+  <div class="card">
+    <h2 id="overTitle">被鲨鱼追上了</h2>
+    <p id="overDesc">再来一次，这次躲远一点</p>
+    <div class="stat">
+      <div><small>金币</small><b id="overCoin">0</b></div>
+      <div><small>距离</small><b id="overDist">0</b></div>
+      <div><small>最好</small><b id="overBest">0</b></div>
+    </div>
+    <div class="btns">
+      <a href="../index.html">回大厅</a>
+      <button class="go" id="again">再冲一次</button>
+    </div>
+    <div class="note">原型验证：几何全部由代码生成，无任何模型文件</div>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="../shared/store.js"></script>
+<script src="../shared/audio.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   海上冲浪 · 程序化几何原型
+   ------------------------------------------------------------
+   这个文件里没有任何模型文件、没有任何贴图。
+   海面波浪、冲浪板、冲浪者、鲨鱼、金币——
+   全部是运行时用代码算出来的顶点。
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. 波形：一份数据，同时生成 JS 版本和 GLSL 版本
+   两边必须用同一个函数，否则冲浪板会陷进浪里或浮在空中
+   ------------------------------------------------------------ */
+var WAVES = [
+  { dx: 0.00, dz: 1.00, len: 24.0, amp: 1.15, spd: 0.60 },   /* 主涌浪 */
+  { dx: 0.45, dz: 0.89, len: 14.0, amp: 0.60, spd: 0.92 },
+  { dx:-0.62, dz: 0.78, len:  8.5, amp: 0.32, spd: 1.30 },
+  { dx: 0.20, dz: 0.98, len:  4.8, amp: 0.16, spd: 1.85 }
+];
+
+/* CPU 端：给冲浪板、鲨鱼、金币算水面高度用的就是这一个 */
+function waveH(x, z, t){
+  var h = 0;
+  for(var i = 0; i < WAVES.length; i++){
+    var w = WAVES[i];
+    h += w.amp * Math.sin((w.dx * x + w.dz * z) * (Math.PI * 2 / w.len) + t * w.spd);
+  }
+  return h;
+}
+
+/* GPU 端：用同一份 WAVES 数据拼出 GLSL，保证两边完全一致 */
+function waveGLSL(){
+  var s = 'const float TAU = 6.283185307;\n';
+  s += 'float waveH(vec2 p, float t){\n  float h = 0.0;\n';
+  for(var i = 0; i < WAVES.length; i++){
+    var w = WAVES[i];
+    s += '  h += ' + w.amp.toFixed(4) + ' * sin((' + w.dx.toFixed(4) + '*p.x + ' +
+         w.dz.toFixed(4) + '*p.y) * (TAU/' + w.len.toFixed(4) + ') + t*' + w.spd.toFixed(4) + ');\n';
+  }
+  s += '  return h;\n}\n';
+  return s;
+}
+
+/* ------------------------------------------------------------
+   2. 调色板：低饱和，颜色像商量过 —— 高级感主要来自这里
+   ------------------------------------------------------------ */
+var C = {
+  sky:     0xA9D2DE,
+  fog:     0xDCEFF2,
+  skyTop:  0x9BCEE2,
+  skyLow:  0xDCEFF2,
+  sea:     0x5C9FB4,
+  foam:    0xEAF6F6,
+  boardTop:0xE68B9C,
+  boardBot:0xF3C3CC,
+  skin:    0xE8C9A8,
+  shirt:   0xF7F4EE,
+  pants:   0x5B7FB4,
+  hair:    0x4A403A,
+  coin:    0xEFC153,
+  shark:   0x6E8290,
+  sharkBelly:0xC8D6DC
+};
+
+/* ------------------------------------------------------------
+   3. 场景 / 相机 / 光照
+   ------------------------------------------------------------ */
+var canvas = document.getElementById('c');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+var scene = new THREE.Scene();
+/* 天空用一个反面渲染的大球做垂直渐变，比纯色 background 层次好很多。
+   fog 用与地平线一致的浅色，远处海面才能无缝融进天空。 */
+var skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: {
+    uTop: { value: new THREE.Color(C.skyTop) },
+    uLow: { value: new THREE.Color(C.skyLow) }
+  },
+  vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: [
+    'uniform vec3 uTop; uniform vec3 uLow; varying vec3 vP;',
+    'void main(){',
+    '  float h = clamp((normalize(vP).y + 0.12) / 0.85, 0.0, 1.0);',
+    '  gl_FragColor = vec4(mix(uLow, uTop, pow(h, 0.75)), 1.0);',
+    '}'
+  ].join('\n')
+});
+var skyDome = new THREE.Mesh(new THREE.SphereGeometry(280, 16, 10), skyMat);
+skyDome.frustumCulled = false;
+skyDome.renderOrder = -1;                 /* 先画天空，再画其他 */
+scene.add(skyDome);
+/* 兜底背景色与雾色、地平线色一致，避免任何缝隙露出底色 */
+scene.background = new THREE.Color(C.skyLow);
+scene.fog = new THREE.FogExp2(C.fog, 0.0125);
+
+var camera = new THREE.PerspectiveCamera(58, 1, 0.5, 400);
+camera.position.set(0, 4, 12);
+
+/* 两盏灯：天光负责整体柔和，单向光负责方向和阴影 */
+var hemi = new THREE.HemisphereLight(0xD8EEF5, 0x6E96A4, 1.00);
+scene.add(hemi);
+
+var sun = new THREE.DirectionalLight(0xFFF2DC, 1.85);
+sun.position.set(-14, 24, 12);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
+sun.shadow.camera.top = 20;   sun.shadow.camera.bottom = -20;
+sun.shadow.camera.near = 1;   sun.shadow.camera.far = 80;
+sun.shadow.bias = -0.0016;
+sun.shadow.normalBias = 0.03;
+scene.add(sun);
+scene.add(sun.target);
+
+/* ------------------------------------------------------------
+   4. 海面：一张平面网格，顶点在着色器里按波形上下位移
+   用 flatShading 出低多边形的棱面感，浪尖上再混一点白沫
+   ------------------------------------------------------------ */
+var SEA_SIZE = 130;         /* 海面网格尺寸 */
+var SEA_SEG  = 64;          /* 分段数：64 段 → 每格约 2 米，棱面大小刚好 */
+
+var waveUniforms = {
+  uTime:   { value: 0 },
+  uOrigin: { value: new THREE.Vector2(0, 0) },
+  uFoam:   { value: new THREE.Color(C.foam) }
+};
+
+var seaGeo = new THREE.PlaneGeometry(SEA_SIZE, SEA_SIZE, SEA_SEG, SEA_SEG);
+seaGeo.rotateX(-Math.PI / 2);          /* 让平面躺平，物体空间就等于世界轴向 */
+
+var seaMat = new THREE.MeshStandardMaterial({
+  color: C.sea,
+  roughness: 1.0,
+  metalness: 0.0,
+  flatShading: true
+});
+
+seaMat.onBeforeCompile = function(shader){
+  shader.uniforms.uTime = waveUniforms.uTime;
+  shader.uniforms.uOrigin = waveUniforms.uOrigin;
+  shader.uniforms.uFoam = waveUniforms.uFoam;
+
+  /* 插入点如果找不到，说明 Three.js 版本变了，要立刻暴露出来而不是静默失效 */
+  if(shader.vertexShader.indexOf('#include <begin_vertex>') < 0 ||
+     shader.fragmentShader.indexOf('#include <color_fragment>') < 0){
+    console.error('[surf] 着色器插入点没找到，海浪位移不会生效，请检查 three.js 版本');
+    return;
+  }
+
+  /* 顶点：按世界坐标采样波形，抬高 y。用世界坐标是为了让整片海无缝平铺 */
+  shader.vertexShader =
+    'uniform float uTime;\nuniform vec2 uOrigin;\nvarying float vWaveH;\n' + waveGLSL() +
+    shader.vertexShader.replace(
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n' +
+      '  vec2 worldXZ = position.xz + uOrigin;\n' +
+      '  float wh = waveH(worldXZ, uTime);\n' +
+      '  transformed.y += wh;\n' +
+      '  vWaveH = wh;'
+    );
+
+  /* 片元：浪尖泛白，做出泡沫 */
+  shader.fragmentShader =
+    'varying float vWaveH;\nuniform vec3 uFoam;\n' +
+    shader.fragmentShader.replace(
+      '#include <color_fragment>',
+      '#include <color_fragment>\n' +
+      '  diffuseColor.rgb = mix(diffuseColor.rgb, uFoam, smoothstep(1.32, 2.00, vWaveH));'
+    );
+};
+
+var sea = new THREE.Mesh(seaGeo, seaMat);
+sea.receiveShadow = true;
+scene.add(sea);
+
+/* ------------------------------------------------------------
+   5. 程序化几何 —— 从这里开始，全是算出来的顶点
+   ------------------------------------------------------------ */
+
+/* 5.1 冲浪板：沿长度采样半宽，再绕一圈截面，两头自然收成尖 */
+function makeSurfboard(L, W, T){
+  var RINGS = 15;        /* 沿长度分几段 */
+  var SIDES = 6;         /* 截面几边形 */
+  var pos = [], idx = [];
+
+  for(var j = 0; j <= RINGS; j++){
+    var u = j / RINGS;                        /* 0 = 板尾，1 = 板头 */
+    var halfW = (W / 2) * Math.pow(Math.sin(Math.PI * u), 0.58);
+    /* 板头削尖一点，板尾保留宽度 */
+    if(u > 0.5) halfW *= 1 - 0.42 * Math.pow((u - 0.5) / 0.5, 2);
+    var z = (u - 0.5) * L;
+
+    for(var k = 0; k < SIDES; k++){
+      var a = k / SIDES * Math.PI * 2;
+      /* 近似椭圆的截面，有点圆弧的板缘 */
+      pos.push(halfW * Math.sin(a), (T / 2) * Math.cos(a), z);
+    }
+  }
+  for(var jj = 0; jj < RINGS; jj++){
+    for(var kk = 0; kk < SIDES; kk++){
+      var a0 = jj * SIDES + kk;
+      var a1 = jj * SIDES + (kk + 1) % SIDES;
+      var b0 = a0 + SIDES;
+      var b1 = a1 + SIDES;
+      idx.push(a0, b0, b1, a0, b1, a1);
+    }
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/* 5.2 鲨鱼：沿身体采样半径轮廓 → 环 → 蒙皮，再挂上背鳍、胸鳍、尾鳍 */
+function makeShark(L){
+  var RINGS = 10, SIDES = 6, R = L * 0.115;
+  var pos = [], idx = [];
+
+  for(var j = 0; j <= RINGS; j++){
+    var u = j / RINGS;                                  /* 0 = 吻端，1 = 尾柄 */
+    /* 半径轮廓：吻端收尖、身体中前段最粗、尾柄再收细 */
+    var r = R * Math.sin(Math.pow(u, 0.78) * Math.PI) * (1 - 0.35 * u);
+    r = Math.max(r, 0.012);
+    var z = (u - 0.5) * L;
+    for(var k = 0; k < SIDES; k++){
+      var a = k / SIDES * Math.PI * 2;
+      pos.push(Math.sin(a) * r * 0.72, Math.cos(a) * r, z);   /* 侧扁一点 */
+    }
+  }
+  for(var jj = 0; jj < RINGS; jj++){
+    for(var kk = 0; kk < SIDES; kk++){
+      var a0 = jj * SIDES + kk, a1 = jj * SIDES + (kk + 1) % SIDES;
+      idx.push(a0, a0 + SIDES, a1 + SIDES, a0, a1 + SIDES, a1);
+    }
+  }
+
+  var body = new THREE.BufferGeometry();
+  body.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  body.setIndex(idx);
+  body.computeVertexNormals();
+
+  /* 三片鳍：每片就是一个三角形，位置直接算出来。
+     身体朝向约定：-Z 是吻端（前进方向），+Z 是尾柄。 */
+  function fin(p1, p2, p3){
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(
+      [p1[0],p1[1],p1[2], p2[0],p2[1],p2[2], p3[0],p3[1],p3[2]], 3));
+    g.setIndex([0,1,2]);
+    g.computeVertexNormals();
+    return g;
+  }
+  var dorsal = fin([0,  R*0.9,  L*0.02], [0,  R*3.4,  L*0.13], [0,  R*0.8,  L*0.26]);   /* 背鳍 */
+  var tailUp = fin([0,  R*0.5,  L*0.38], [0,  R*3.1,  L*0.56], [0,  R*0.3,  L*0.50]);   /* 上尾鳍 */
+  var tailDn = fin([0, -R*0.3,  L*0.38], [0, -R*1.7,  L*0.55], [0,  R*0.2,  L*0.50]);   /* 下尾鳍 */
+  var pecL   = fin([-R*0.6, -R*0.15, -L*0.20], [-R*2.7, -R*1.0, -L*0.06], [-R*0.5, R*0.15, -L*0.15]);
+  var pecR   = fin([ R*0.6, -R*0.15, -L*0.20], [ R*2.7, -R*1.0, -L*0.06], [ R*0.5, R*0.15, -L*0.15]);
+
+  var mat = new THREE.MeshStandardMaterial({ color: C.shark, roughness: 0.95, metalness: 0, flatShading: true });
+  var bellyMat = new THREE.MeshStandardMaterial({ color: C.sharkBelly, roughness: 1, metalness: 0, flatShading: true });
+
+  var g = new THREE.Group();
+  g.add(new THREE.Mesh(body, mat));
+  g.add(new THREE.Mesh(dorsal, mat));
+  g.add(new THREE.Mesh(tailUp, mat));
+  g.add(new THREE.Mesh(tailDn, mat));
+  g.add(new THREE.Mesh(pecL, bellyMat));
+  g.add(new THREE.Mesh(pecR, bellyMat));
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow = true; } });
+  /* 模型本身已经朝向 -Z，不需要再翻转 */
+  return g;
+}
+
+/* 5.3 金币：一个八边形圆柱，立起来转 */
+function makeCoin(r){
+  var g = new THREE.CylinderGeometry(r, r, r * 0.2, 8);
+  g.rotateX(Math.PI / 2);          /* 让圆面朝向镜头方向 */
+  var mat = new THREE.MeshStandardMaterial({
+    color: C.coin, roughness: 0.5, metalness: 0.0, flatShading: true
+  });
+  var m = new THREE.Mesh(g, mat);
+  m.castShadow = true;
+  return m;
+}
+
+/* 5.4 冲浪者：用胶囊和球体拼，比例夸张一点就可爱 */
+function makeSurfer(){
+  var skin  = new THREE.MeshStandardMaterial({ color: C.skin,  roughness: 0.95, flatShading: true });
+  var shirt = new THREE.MeshStandardMaterial({ color: C.shirt, roughness: 1.0,  flatShading: true });
+  var pants = new THREE.MeshStandardMaterial({ color: C.pants, roughness: 1.0,  flatShading: true });
+  var hair  = new THREE.MeshStandardMaterial({ color: C.hair,  roughness: 1.0,  flatShading: true });
+
+  var g = new THREE.Group();
+
+  var torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.32, 2, 6), shirt);
+  torso.position.set(0, 0.60, 0);
+  torso.rotation.x = 0.26;                    /* 前倾，像在压低重心 */
+  g.add(torso);
+
+  var head = new THREE.Mesh(new THREE.SphereGeometry(0.155, 7, 5), skin);
+  head.position.set(0, 0.96, 0.05);
+  g.add(head);
+
+  var cap = new THREE.Mesh(new THREE.SphereGeometry(0.163, 7, 4, 0, Math.PI * 2, 0, Math.PI * 0.58), hair);
+  cap.position.copy(head.position);
+  g.add(cap);
+
+  [1, -1].forEach(function(s){
+    var arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.052, 0.30, 2, 5), skin);
+    arm.position.set(s * 0.24, 0.63, 0.02);
+    arm.rotation.z = s * 0.95;                /* 张开手臂保持平衡 */
+    arm.rotation.x = -0.35;
+    g.add(arm);
+  });
+  [1, -1].forEach(function(s){
+    /* 前腿屈、后腿撑，一个标准的冲浪站姿 */
+    var front = s > 0;
+    var leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.062, front ? 0.24 : 0.30, 2, 5), pants);
+    leg.position.set(s * 0.115, 0.20, front ? 0.13 : -0.13);
+    leg.rotation.x = front ? -0.42 : 0.30;
+    leg.rotation.z = s * 0.16;
+    g.add(leg);
+  });
+
+  g.traverse(function(o){ if(o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+/* 5.5 组装冲浪板 + 人 */
+var boardMesh = new THREE.Mesh(
+  makeSurfboard(2.5, 0.72, 0.13),
+  new THREE.MeshStandardMaterial({ color: C.boardTop, roughness: 0.85, flatShading: true })
+);
+boardMesh.castShadow = true;
+
+var rider = makeSurfer();
+rider.position.y = 0.06;
+
+var surfer = new THREE.Group();
+surfer.add(boardMesh);
+surfer.add(rider);
+scene.add(surfer);
+
+/* ------------------------------------------------------------
+   6. 金币与鲨鱼：对象池，反复回收再利用
+   ------------------------------------------------------------ */
+var coinPool = [];
+for(var i = 0; i < 26; i++){
+  var c = makeCoin(0.30);
+  c.visible = false;
+  scene.add(c);
+  coinPool.push({ mesh: c, taken: true });
+}
+
+var sharkPool = [];
+for(var s = 0; s < 2; s++){
+  var sk = makeShark(3.4);
+  scene.add(sk);
+  sharkPool.push({ mesh: sk, active: false, x: 0, z: 0, dir: 1, speed: 9, phase: 0 });
+}
+
+/* ------------------------------------------------------------
+   7. 游戏状态与操作
+   ------------------------------------------------------------ */
+var GAME_ID = 'surf';
+var player = { x: 0, z: 0, speed: 15, steer: 0, coin: 0 };
+var input = { left: false, right: false, drag: 0 };
+var running = false, dead = false;
+var elapsed = 0;
+
+function resetGame(){
+  player.x = 0; player.z = 0; player.coin = 0; player.speed = 15; player.steer = 0;
+  dead = false; running = true; elapsed = 0;
+  coinPool.forEach(function(c){ c.taken = true; c.mesh.visible = false; });
+  sharkPool.forEach(function(s2){
+    s2.active = false; s2.z = -60 - Math.random() * 120;
+    s2.dir = Math.random() < 0.5 ? -1 : 1;
+    s2.x = s2.dir * (16 + Math.random() * 10);
+    s2.speed = 7 + Math.random() * 5;
+    s2.phase = Math.random() * 6.28;
+  });
+  seedCoins();
+  document.getElementById('over').classList.add('hide');
+  syncHud();
+}
+
+/* 金币排成一条起伏的引导线，玩家会不自觉地跟着走 */
+var COIN_GAP = 5.4;
+function coinLineX(z){ return Math.sin(z * 0.055) * 4.6; }
+
+function seedCoins(){
+  var z = player.z - 20;
+  for(var i = 0; i < coinPool.length; i++){
+    var c = coinPool[i];
+    c.taken = false;
+    c.mesh.visible = true;
+    c.mesh.position.set(coinLineX(z), 0, z);
+    c.mesh.userData.spin = Math.random() * 6.28;
+    z -= COIN_GAP;
+  }
+}
+
+/* 回收时挂到队尾，而不是固定位移——固定位移会让金币叠在一起 */
+function recycleCoin(m){
+  var minZ = Infinity;
+  for(var i = 0; i < coinPool.length; i++){
+    var z = coinPool[i].mesh.position.z;
+    if(z < minZ) minZ = z;
+  }
+  m.position.z = minZ - COIN_GAP;
+  m.position.x = coinLineX(m.position.z);
+}
+
+function syncHud(){
+  document.getElementById('coinNum').textContent = player.coin;
+  document.getElementById('distNum').textContent = Math.max(0, Math.floor(-player.z));
+}
+
+var msgEl = document.getElementById('msg');
+var msgTimer = null;
+function say(text, hold){
+  msgEl.textContent = text;
+  msgEl.classList.add('show');
+  if(msgTimer) clearTimeout(msgTimer);
+  msgTimer = setTimeout(function(){ msgEl.classList.remove('show'); }, hold || 900);
+}
+
+/* 键盘 */
+document.addEventListener('keydown', function(e){
+  if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = true;
+  if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = true;
+});
+document.addEventListener('keyup', function(e){
+  if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = false;
+  if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = false;
+});
+
+/* 触屏：左右拖动 */
+var dragStart = null;
+canvas.addEventListener('pointerdown', function(e){ dragStart = e.clientX; });
+canvas.addEventListener('pointermove', function(e){
+  if(dragStart === null) return;
+  input.drag = Math.max(-1, Math.min(1, (e.clientX - dragStart) / 60));
+  e.preventDefault();
+});
+function endDrag(){ dragStart = null; input.drag = 0; }
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('pointerleave', endDrag);
+
+function updateSteer(dt){
+  var want = 0;
+  if(input.left) want -= 1;
+  if(input.right) want += 1;
+  if(!want && input.drag) want = input.drag;
+  /* 平滑过渡，别让板瞬间横过来 */
+  player.steer += (want - player.steer) * Math.min(1, dt * 9);
+  player.x += player.steer * dt * 11;
+  player.x = Math.max(-15, Math.min(15, player.x));
+}
+
+/* ------------------------------------------------------------
+   8. 每帧更新
+   ------------------------------------------------------------ */
+/* --- 相机：跟在板后上方，带一点延迟和横移，冲浪感主要来自这里 ---
+   instant = true 时直接落到目标位置，自动化截图用得上 */
+function placeCamera(dt, instant){
+  var px = player.x, pz = player.z;
+  var hHere = waveH(px, pz, elapsed);
+  var camX = px * 0.55;
+  var kx = instant ? 1 : Math.min(1, dt * 3.2);
+  var ky = instant ? 1 : Math.min(1, dt * 3.0);
+  var kz = instant ? 1 : Math.min(1, dt * 4.5);
+  /* 配镜参数是按画面构图画出来的，不是试出来的：
+     纵向 FOV 58°，希望地平线落在画面三分之一、冲浪板落在三分之二。
+     地平线俯角约 2.6° → 注视点俯角 12.5° → 相机高出水面 3.0 米、退后 7.2 米。 */
+  camera.position.x += (camX - camera.position.x) * kx;
+  camera.position.y += (hHere + 3.00 - camera.position.y) * ky;
+  camera.position.z += (pz + 7.20 - camera.position.z) * kz;
+  camera.lookAt(camX, hHere + 1.00, pz - 9);
+}
+
+function update(dt){
+  elapsed += dt;
+
+  if(running && !dead){
+    player.speed = Math.min(26, player.speed + dt * 0.55);   /* 越冲越快 */
+    player.z -= player.speed * dt;
+    updateSteer(dt);
+    syncHud();
+  }
+
+  /* --- 海面：跟着玩家平移，步进取整保证波形在世界里不动 --- */
+  sea.position.x = Math.round(player.x / SEA_SIZE) * SEA_SIZE;
+  sea.position.z = Math.round(player.z / SEA_SIZE) * SEA_SIZE;
+  waveUniforms.uOrigin.value.set(sea.position.x, sea.position.z);
+  waveUniforms.uTime.value = elapsed;
+
+  /* --- 冲浪板贴着浪面：CPU 用同一套波形算高度和前后坡度 --- */
+  var px = player.x, pz = player.z;
+  var hHere = waveH(px, pz, elapsed);
+  var hFront = waveH(px, pz - 0.9, elapsed);
+  var hBack  = waveH(px, pz + 0.9, elapsed);
+
+  surfer.position.set(px, hHere + 0.10, pz);
+  surfer.rotation.x = Math.atan2(hFront - hBack, 1.8) * 0.85;   /* 顺浪下坡 */
+  surfer.rotation.z = -player.steer * 0.42;                     /* 转向时压板 */
+  surfer.rotation.y = -player.steer * 0.20;
+  rider.rotation.z = player.steer * 0.16;
+
+  /* --- 金币：回收再往前抛，永远在玩家前方 --- */
+  coinPool.forEach(function(c){
+    var m = c.mesh;
+    m.rotation.y += dt * 3.2;
+    m.position.y = waveH(m.position.x, m.position.z, elapsed) + 1.05 + Math.sin(elapsed * 2 + m.userData.spin) * 0.12;
+    if(c.taken) return;
+
+    if(m.position.z > pz + 26){
+      recycleCoin(m);
+    }
+    var dx = m.position.x - px, dz = m.position.z - pz;
+    if(dx * dx + dz * dz < 1.7){
+      c.taken = true; m.visible = false;
+      player.coin++;
+      GameAudio.sfx('pop', player.coin);
+      syncHud();
+      if(player.coin % 10 === 0) say('金币 ' + player.coin + '！', 700);
+    }
+  });
+
+  /* --- 鲨鱼：从侧面横穿，有足够的反应时间 --- */
+  sharkPool.forEach(function(s2){
+    if(!s2.active){
+      if(-s2.z - (-pz) < 0) s2.z = pz - (70 + Math.random() * 90);
+      if(s2.z > pz - 40) return;
+      s2.active = true;
+      s2.dir = Math.random() < 0.5 ? -1 : 1;
+      s2.x = s2.dir * (17 + Math.random() * 8);
+      s2.speed = 8 + Math.random() * 5;
+    }
+    s2.x -= s2.dir * s2.speed * dt;
+    var body = s2.mesh;
+    body.position.set(s2.x, waveH(s2.x, s2.z, elapsed) - 0.35, s2.z);
+    /* 模型朝 -Z：往 -X 游要转 +90°，往 +X 游转 -90°，再叠一点摆尾的偏航 */
+    var baseYaw = s2.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+    body.rotation.y = baseYaw + Math.sin(elapsed * 4.2 + s2.phase) * 0.20;
+    body.rotation.z = Math.sin(elapsed * 2.4 + s2.phase) * 0.14;
+
+    if(Math.abs(s2.x) > 28) s2.active = false;
+
+    if(!dead){
+      var ddx = body.position.x - px, ddz = body.position.z - pz;
+      if(ddx * ddx + ddz * ddz < 2.6) onCrash();
+    }
+  });
+
+  /* --- 相机与阴影 --- */
+  placeCamera(dt, false);
+
+  skyDome.position.set(camera.position.x, 0, camera.position.z);
+  sun.position.set(px - 15, 26, pz + 13);
+  sun.target.position.set(px, 0, pz);
+  sun.target.updateMatrixWorld();
+}
+
+function onCrash(){
+  if(dead) return;
+  dead = true; running = false;
+  GameAudio.sfx('lose');
+  if(navigator.vibrate) navigator.vibrate([40, 60, 90]);
+  say('被咬到了！', 900);
+
+  var best = Store.get('surfBest', 0);
+  var isNew = player.coin > best;
+  if(isNew) Store.set('surfBest', player.coin);
+
+  document.getElementById('overCoin').textContent = player.coin;
+  document.getElementById('overDist').textContent = Math.floor(-player.z);
+  document.getElementById('overBest').textContent = Math.max(best, player.coin);
+  document.getElementById('overTitle').textContent = isNew ? '新纪录！' : '被鲨鱼追上了';
+  document.getElementById('overDesc').textContent = isNew
+    ? '这轮金币刷得不错，再来一把？'
+    : '再来一次，这次躲远一点';
+  setTimeout(function(){ document.getElementById('over').classList.remove('hide'); }, 700);
+}
+
+document.getElementById('again').addEventListener('click', function(){
+  GameAudio.unlock(); GameAudio.sfx('ui');
+  resetGame();
+});
+
+/* ------------------------------------------------------------
+   9. 主循环
+   ------------------------------------------------------------ */
+function resize(){
+  var w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', function(){ setTimeout(resize, 250); });
+resize();
+
+var last = performance.now();
+function loop(now){
+  var dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  update(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+GameAudio.autoUnlock();
+resetGame();
+requestAnimationFrame(loop);
+
+/* 首次触摸隐藏操作提示 */
+setTimeout(function(){ document.getElementById('tip').classList.add('hide'); }, 6000);
+window.addEventListener('pointerdown', function once(){
+  document.getElementById('tip').classList.add('hide');
+  window.removeEventListener('pointerdown', once);
+});
+
+/* 暴露给自动化测试用 */
+window.__surf = {
+  ready: true,
+  state: function(){
+    var v = new THREE.Vector3();
+    surfer.getWorldPosition(v);
+    v.project(camera);
+    return {
+      coin: player.coin,
+      dist: Math.floor(-player.z),
+      dead: dead,
+      sharks: sharkPool.filter(function(s2){ return s2.active; }).length,
+      coinsVisible: coinPool.filter(function(c){ return !c.taken; }).length,
+      tris: renderer.info.render.triangles,
+      calls: renderer.info.render.calls,
+      cam: [ +camera.position.x.toFixed(2), +camera.position.y.toFixed(2), +camera.position.z.toFixed(2) ],
+      surfer: [ +surfer.position.x.toFixed(2), +surfer.position.y.toFixed(2), +surfer.position.z.toFixed(2) ],
+      camDist: +camera.position.distanceTo(surfer.position).toFixed(2),
+      /* 冲浪板投影到屏幕的归一化坐标，0.5/0.5 是画面正中 */
+      screen: [ +((v.x * 0.5 + 0.5)).toFixed(3), +((-v.y * 0.5 + 0.5)).toFixed(3) ],
+      screenSize: +(viewSize(surfer.position)).toFixed(3)
+    };
+  },
+  player: player,
+  reset: resetGame,
+  snap: function(){ placeCamera(0, true); },
+  tick: function(dt){ update(dt || 0.016); renderer.render(scene, camera); },
+
+  /* 自动化截图用：摆到一个好看的中段状态，并暂时清空鲨鱼 */
+  photo: function(z, coin, x){
+    dead = false; running = true;
+    player.z = z; player.coin = coin;
+    player.x = (x === undefined) ? 1.6 : x;
+    player.speed = 21; player.steer = 0.26;
+    sharkPool.forEach(function(s2){ s2.active = false; s2.z = z - 300; });
+    for(var i = 0; i < 40; i++) update(0.016);
+    placeCamera(0, true);
+    renderer.render(scene, camera);
+    syncHud();
+    return window.__surf.state();
+  }
+};
+
+/* 估算某点处画面的世界高度，用来判断主角在屏幕上占多大 */
+function viewSize(pos){
+  var d = camera.position.distanceTo(pos);
+  return 2 * d * Math.tan(camera.fov * Math.PI / 360);
+}
+})();
+</script>
+</body>
+</html>

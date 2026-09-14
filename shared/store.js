@@ -26,7 +26,12 @@
       var raw = localStorage.getItem(KEY);
       if(raw){
         var o = JSON.parse(raw);
+        /* 先恢复内置字段 */
         for(var k in d){ if(o && o[k] !== undefined) d[k] = o[k]; }
+        /* 再恢复各游戏自己塞进来的自定义键，否则它们的存档重载后会丢 */
+        if(o && typeof o === 'object'){
+          for(var k2 in o){ if(!(k2 in d)) d[k2] = o[k2]; }
+        }
         if(!d.best || typeof d.best !== 'object') d.best = {};
         if(!d.seen || typeof d.seen !== 'object') d.seen = {};
         if(!d.plays || typeof d.plays !== 'object') d.plays = {};

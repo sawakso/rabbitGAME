@@ -62,6 +62,7 @@
 .tagchip{font-size:9.5px;padding:2px 7px;border-radius:999px;background:#F4EDE3;color:#9C8878}
 .tagchip.relax{background:#E7F4EE;color:#4C9179}
 .tagchip.brain{background:#FDECEF;color:#B2707E}
+.tagchip.collect{background:#F1ECFA;color:#7B6BAE}
 .bestChip{margin-left:auto;font-size:10px;color:#B07A58;background:#FBE7D4;
   border-radius:999px;padding:2px 8px;font-variant-numeric:tabular-nums}
 .gcard.soon{opacity:.6;border-style:dashed;cursor:default;box-shadow:none}
@@ -147,12 +148,43 @@ var ICONS = {
         '<rect x="29" y="45" width="14" height="14" rx="4" fill="#F5DFE4"/>' +
         '<rect x="45" y="45" width="14" height="14" rx="4" fill="#FFEFAE" stroke="#E0B23E" stroke-width="1.5"/>' +
       '</g>' +
-      '<path d="M20 20 L20 36 L36 36 L36 52 L52 52" fill="none" stroke="#D68B9C" ' +
+        '<path d="M20 20 L20 36 L36 36 L36 52 L52 52" fill="none" stroke="#D68B9C" ' +
         'stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>' +
+    '</svg>',
+
+  /* 兔子的衣橱：兔子头像 + 蝴蝶结 + 小裙子 */
+  closet:
+    '<svg viewBox="0 0 72 72" width="62" height="62">' +
+      '<rect x="6" y="6" width="60" height="60" rx="12" fill="#FBEFF3"/>' +
+      '<ellipse cx="30" cy="24" rx="4" ry="10.5" transform="rotate(-9 30 24)" fill="#FFF7EE" stroke="#E8D5C2" stroke-width="1.5"/>' +
+      '<ellipse cx="42" cy="24" rx="4" ry="10.5" transform="rotate(9 42 24)" fill="#FFF7EE" stroke="#E8D5C2" stroke-width="1.5"/>' +
+      '<circle cx="36" cy="37" r="13.5" fill="#FFF9F2" stroke="#E8D5C2" stroke-width="1.5"/>' +
+      '<ellipse cx="30.5" cy="41" rx="3.2" ry="2" fill="#F9C8D0"/>' +
+      '<ellipse cx="41.5" cy="41" rx="3.2" ry="2" fill="#F9C8D0"/>' +
+      '<circle cx="31.6" cy="36.4" r="2" fill="#5A4B42"/>' +
+      '<circle cx="40.4" cy="36.4" r="2" fill="#5A4B42"/>' +
+      '<ellipse cx="36" cy="40.4" rx="1.6" ry="1.2" fill="#E9A0AC"/>' +
+      '<path d="M32.6 44.4 q3.4 2.6 6.8 0" fill="none" stroke="#B98591" stroke-width="1.4" stroke-linecap="round"/>' +
+      '<path d="M51 21 l7 -4.6 v9.2 z" fill="#E8657A"/>' +
+      '<path d="M51 21 l-7 -4.6 v9.2 z" fill="#E8657A"/>' +
+      '<circle cx="51" cy="21" r="2.3" fill="#C74A5F"/>' +
+      '<path d="M29 55.5 l14 0 l4.4 9.5 l-22.8 0 z" fill="#F2A0B0"/>' +
+      '<circle cx="36" cy="55.5" r="1.7" fill="#F8C6D0"/>' +
     '</svg>'
 };
 
 var GAMES = [
+  {
+    id:'bunnycloset',
+    name:'兔子的衣橱',
+    desc:'抽服装给兔子换装，攒得越多越好玩',
+    tags:['relax','collect'],
+    url:'games/bunnycloset.html',
+    ready:true,
+    accent:'#FBEFF3',
+    unit:'件',
+    icon:ICONS.closet
+  },
   {
     id:'lastcell',
     name:'最后一格',
@@ -163,23 +195,19 @@ var GAMES = [
     accent:'#FDEFF2',
     unit:'步',
     icon:ICONS.grid
-  },
-  {
-    id:'next',
-    name:'下一个游戏',
-    desc:'正在挑一个不太费脑的玩法',
-    tags:['relax'],
-    url:'',
-    ready:false,
-    accent:'#F1F6F3',
-    unit:'',
-    icon:''
   }
 ];
 
 var gridEl = document.getElementById('grid');
 var resumeSlot = document.getElementById('resumeSlot');
 var filter = 'all';
+
+/* 标签的显示名与配色，加新标签只改这里 */
+var TAG_MAP = {
+  relax:   { cls:'relax',   label:'放松' },
+  brain:   { cls:'brain',   label:'烧脑' },
+  collect: { cls:'collect', label:'收集' }
+};
 
 document.getElementById('bunnyTop').innerHTML = Bunny.svg('idle', 'hub');
 
@@ -194,8 +222,8 @@ function render(){
     var bestChip = (g.ready && best > 0)
       ? '<span class="bestChip">' + best + g.unit + '</span>' : '';
     var tagHtml = (g.tags || []).map(function(t){
-      var cls = t === 'relax' ? 'relax' : t === 'brain' ? 'brain' : '';
-      var label = t === 'relax' ? '放松' : t === 'brain' ? '烧脑' : t;
+      var cls = TAG_MAP[t] ? TAG_MAP[t].cls : '';
+      var label = TAG_MAP[t] ? TAG_MAP[t].label : t;
       return '<span class="tagchip ' + cls + '">' + label + '</span>';
     }).join('');
 

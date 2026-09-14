@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no,email=no,address=no">
+<meta name="theme-color" content="#FDF3E5">
+<title>兔子的衣橱 · 兔子小游戏</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+/* ============================================================
+   兔子的衣橱 —— 换装 + 收集 + 养成
+   四个驱动力咬合：放置产出 → 开盲盒 → 换装 → 生成形象卡分享
+   兔子、服装、背景全部用 Canvas 代码绘制，没有任何图片文件
+   ============================================================ */
+
+.app{position:relative;z-index:1;width:min(100vw,460px);margin:0 auto;height:100vh;
+  display:flex;flex-direction:column;padding:calc(46px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));
+  gap:8px;overflow:hidden}
+
+/* 顶栏 */
+.top{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.pill{background:rgba(255,253,248,.95);border:2px solid var(--line);border-radius:15px;
+  padding:5px 11px 4px;box-shadow:3px 3px 0 var(--tap);display:flex;align-items:baseline;gap:5px}
+.pill small{font-size:10px;color:var(--ink3)}
+.pill b{font-size:17px;color:#D8863C;font-variant-numeric:tabular-nums}
+.pill .rate{font-size:10px;color:#B99A7C}
+.top .spacer{flex:1}
+.iconBtn{width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--line);border-radius:13px;background:rgba(255,253,248,.95);
+  color:#7A6353;font-size:15px;box-shadow:3px 3px 0 var(--tap);cursor:pointer;text-decoration:none}
+
+/* 展示台 */
+.stage{position:relative;flex:1 1 auto;min-height:0;border-radius:20px;overflow:hidden;
+  border:2px solid var(--line);box-shadow:4px 5px 0 var(--tap),0 10px 24px rgba(150,118,92,.12)}
+#stage{display:block;width:100%;height:100%}
+.stageTag{position:absolute;left:10px;bottom:8px;font-size:10.5px;color:rgba(80,60,48,.62);
+  background:rgba(255,253,248,.8);border-radius:999px;padding:3px 9px;backdrop-filter:blur(3px)}
+
+/* 分类 */
+.tabs{display:flex;gap:6px;flex:0 0 auto}
+.tabs button{flex:1;border:1.5px solid var(--line);background:rgba(255,253,248,.86);
+  border-radius:12px;padding:7px 0;font-size:12px;color:var(--ink3);cursor:pointer;font-family:inherit}
+.tabs button.on{color:#C4697B;border-color:#EBCBD2;background:rgba(255,240,242,.96);font-weight:600}
+.tabs button i{font-style:normal;font-size:9.5px;opacity:.7;margin-left:3px}
+
+/* 道具格 */
+.grid{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:7px;
+  max-height:34vh;overflow-y:auto;padding:2px 1px 4px;-webkit-overflow-scrolling:touch}
+.item{position:relative;aspect-ratio:1;border:2px solid var(--line);border-radius:14px;
+  background:rgba(255,253,248,.9);cursor:pointer;overflow:hidden;
+  box-shadow:2px 3px 0 var(--tap);transition:transform .1s}
+.item:active{transform:scale(.95)}
+.item canvas{display:block;width:100%;height:100%}
+.item.locked{background:rgba(240,236,229,.9);border-style:dashed;cursor:default}
+.item.worn{border-color:var(--pink);background:rgba(255,241,244,.95);
+  box-shadow:0 0 0 2px rgba(230,139,156,.28),2px 3px 0 var(--tap)}
+.item .rar{position:absolute;right:4px;top:3px;font-size:9px;font-weight:800;
+  border-radius:999px;padding:1px 5px;background:rgba(255,255,255,.85)}
+.item .nm{position:absolute;left:0;right:0;bottom:0;font-size:9px;text-align:center;
+  color:#7C6A5C;background:rgba(255,253,248,.86);padding:1px 0}
+
+/* 底部操作 */
+.actions{display:flex;gap:8px;flex:0 0 auto}
+.btn{flex:1;border:1.5px solid #C9AE93;border-radius:999px;padding:10px 6px;background:rgba(255,253,248,.96);
+  color:#6B5648;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+  box-shadow:3px 3px 0 var(--tap);line-height:1.25;position:relative}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--tap)}
+.btn[disabled]{opacity:.45;box-shadow:none;cursor:default}
+.btn.primary{background:linear-gradient(180deg,#F2A0B0,var(--pink));border-color:var(--pink-d);color:#fff}
+.btn.ad{background:linear-gradient(180deg,#A9D8C3,#6FB894);border-color:#5AA37F;color:#fff}
+.btn small{display:block;font-size:9.5px;font-weight:500;opacity:.8}
+.btn .cd{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,253,248,.86);border-radius:999px;font-size:11px;color:#94806E}
+
+/* 盲盒开箱动画 */
+.drawWrap{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  background:rgba(88,66,54,.5);backdrop-filter:blur(4px);animation:fadeIn .2s}
+.box{width:170px;height:170px;border-radius:26px;background:#FFFDF8;border:3px dashed #E7D8C6;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  animation:boxShake .5s ease-in-out infinite}
+@keyframes boxShake{0%,100%{transform:rotate(-3deg) scale(1)}50%{transform:rotate(3deg) scale(1.05)}}
+.box.pop{animation:boxPop .45s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes boxPop{0%{transform:scale(1)}55%{transform:scale(1.24)}100%{transform:scale(1);border-style:solid}}
+.box canvas{width:78%;height:78%;display:block}
+.drawTip{position:absolute;bottom:22%;color:#fff;font-size:13px;text-shadow:0 2px 8px rgba(40,20,10,.5)}
+
+/* 形象卡 */
+.cardWrap{position:fixed;inset:0;z-index:22;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;background:rgba(40,28,22,.72);backdrop-filter:blur(5px);padding:18px}
+.cardWrap img{width:min(78vw,320px);border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.cardWrap p{color:rgba(255,255,255,.88);font-size:12.5px;margin:0;text-align:center;line-height:1.7}
+.cardWrap .btns{display:flex;gap:9px;width:min(78vw,320px)}
+.cardWrap .btns a,.cardWrap .btns button{flex:1;text-align:center;text-decoration:none;
+  border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.14);color:#fff;
+  border-radius:999px;padding:11px 0;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.hide{display:none!important}
+.toast{position:fixed;left:50%;bottom:16%;transform:translateX(-50%);z-index:30;
+  background:rgba(60,44,36,.9);color:#fff;font-size:13px;border-radius:999px;padding:9px 18px;
+  pointer-events:none;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<main class="app">
+  <h1 class="sr-only">兔子的衣橱，收集服装给兔子换装并生成形象卡</h1>
+
+  <div class="top">
+    <a class="backBtn" href="../index.html" aria-label="返回游戏大厅" style="position:static">‹</a>
+    <div class="pill">
+      <small>胡萝卜</small><b id="carrotNum">0</b><span class="rate" id="rate">+0.2/秒</span>
+    </div>
+    <div class="spacer"></div>
+    <button class="iconBtn" id="btnCard" title="生成形象卡">✧</button>
+  </div>
+
+  <div class="stage">
+    <canvas id="stage"></canvas>
+    <div class="stageTag" id="stageTag">在家种胡萝卜中…</div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="grid" id="grid"></div>
+
+  <div class="actions">
+    <button class="btn primary" id="btnDraw">开盲盒<small>30 胡萝卜</small></button>
+    <button class="btn ad" id="btnAd">看广告免费抽<small>5 分钟一次</small></button>
+  </div>
+</main>
+
+<div class="drawWrap hide" id="drawWrap">
+  <div class="drawTip" id="drawTip">正在打开…</div>
+  <div class="box" id="drawBox"></div>
+</div>
+
+<div class="cardWrap hide" id="cardWrap">
+  <img id="cardImg" alt="兔子的形象卡">
+  <p>长按图片保存，或点下面的按钮下载<br>发给朋友看看你的兔子</p>
+  <div class="btns">
+    <a id="cardDl" download="我的兔子.png">下载</a>
+    <button id="cardClose">关闭</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../shared/store.js"></script>
+<script src="../shared/audio.js"></script>
+<script src="../shared/theme.js"></script>
+<script>
+(function(){
+'use strict';
+
+var $ = function(id){ return document.getElementById(id); };
+var GAME_ID = 'bunnycloset';
+var SAVE_KEY = 'closet';
+
+/* ============================================================
+   1. 数值
+   ============================================================ */
+var CARROT_PER_SEC = 0.2;          /* 兔子每秒种的胡萝卜 */
+var OFFLINE_CAP    = 8 * 3600;     /* 离线最多攒 8 小时 */
+var DRAW_COST      = 30;           /* 开一次盲盒 */
+var AD_DRAW_CD     = 5 * 60 * 1000;/* 免费抽的冷却 */
+var START_CARROT   = 90;
+
+/* 抽取概率：普通 62% / 稀有 28% / 传说 10% */
+var RARITY = [
+  null,
+  { name:'普通', color:'#9C8878', weight:62 },
+  { name:'稀有', color:'#6C8FD8', weight:28 },
+  { name:'传说', color:'#D9A02C', weight:10 }
+];
+
+/* ============================================================
+   2. 兔子与道具的画法 —— 全部是代码，没有一张图片
+   坐标系：一个 100 × 132 的盒子，左上角是 (0,0)
+   头中心 (50,50) 半径 30；身体中心 (50,104)
+   ============================================================ */
+function rr(c, x, y, w, h, r){
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+function ell(c, x, y, rx, ry, rot){
+  c.beginPath(); c.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2);
+}
+function star(c, x, y, R, r, rot){
+  c.beginPath();
+  for(var i = 0; i < 10; i++){
+    var rad = (i % 2 === 0) ? R : r;
+    var a = (rot || -Math.PI / 2) + i * Math.PI / 5;
+    var px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad;
+    if(i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+  }
+  c.closePath();
+}
+
+/* --- 兔子的身体 --- */
+function drawBody(c, t){
+  var bob = Math.sin(t * 1.6) * 1.1;      /* 轻微呼吸起伏 */
+  c.save();
+  c.translate(0, bob);
+
+  /* 影子 */
+  c.fillStyle = 'rgba(150,118,92,.16)';
+  ell(c, 50, 130, 30, 5); c.fill();
+
+  /* 耳朵（先画，压在头后面） */
+  var sway = Math.sin(t * 1.3) * 3.2;
+  c.fillStyle = '#FFF7EE'; c.strokeStyle = '#E8D5C2'; c.lineWidth = 1.6;
+  c.save(); c.translate(38, 22); c.rotate(-0.19 + sway * 0.012);
+  ell(c, 0, 0, 8.4, 24); c.fill(); c.stroke();
+  c.fillStyle = '#F7C6CE'; ell(c, 0, 1, 3.8, 15); c.fill();
+  c.restore();
+  c.fillStyle = '#FFF7EE';
+  c.save(); c.translate(62, 22); c.rotate(0.19 - sway * 0.012);
+  ell(c, 0, 0, 8.4, 24); c.fill(); c.stroke();
+  c.fillStyle = '#F7C6CE'; ell(c, 0, 1, 3.8, 15); c.fill();
+  c.restore();
+
+  /* 脚 */
+  c.fillStyle = '#FFF3E6'; c.strokeStyle = '#E8D5C2'; c.lineWidth = 1.5;
+  ell(c, 37, 125, 12, 6.4); c.fill(); c.stroke();
+  ell(c, 63, 125, 12, 6.4); c.fill(); c.stroke();
+
+  /* 身体 */
+  c.fillStyle = '#FFFAF3'; c.strokeStyle = '#E8D5C2'; c.lineWidth = 1.6;
+  ell(c, 50, 104, 29, 30); c.fill(); c.stroke();
+
+  /* 手臂 */
+  c.fillStyle = '#FFF5EA';
+  ell(c, 22, 102, 8.6, 12, -0.35); c.fill(); c.stroke();
+  ell(c, 78, 102, 8.6, 12, 0.35); c.fill(); c.stroke();
+
+  c.restore();
+}
+function drawFace(c, mood, t){
+  c.fillStyle = '#5A4B42';
+  var blink = (Math.sin(t * 0.8) > 0.985) ? 0.12 : 1;   /* 偶尔眨一下眼 */
+  if(mood === 'happy'){
+    c.strokeStyle = '#5A4B42'; c.lineWidth = 2.4; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(38, 51); c.quadraticCurveTo(42, 45, 46, 51); c.stroke();
+    c.beginPath(); c.moveTo(54, 51); c.quadraticCurveTo(58, 45, 62, 51); c.stroke();
+  } else {
+    c.save(); c.scale(1, blink);
+    ell(c, 42, 50 / (blink || 1), 3.6, 3.6); c.fill();
+    ell(c, 58, 50 / (blink || 1), 3.6, 3.6); c.fill();
+    c.restore();
+    if(blink > 0.5){
+      c.fillStyle = '#fff';
+      ell(c, 40.8, 48.6, 1.3, 1.3); c.fill();
+      ell(c, 56.8, 48.6, 1.3, 1.3); c.fill();
+      c.fillStyle = '#5A4B42';
+    }
+  }
+  /* 腮红 */
+  c.fillStyle = 'rgba(249,200,208,.85)';
+  ell(c, 31, 60, 6.4, 4.1); c.fill();
+  ell(c, 69, 60, 6.4, 4.1); c.fill();
+  /* 鼻子与嘴 */
+  c.fillStyle = '#E9A0AC';
+  ell(c, 50, 58, 2.5, 1.9); c.fill();
+  c.strokeStyle = '#B98591'; c.lineWidth = 1.7; c.lineCap = 'round';
+  c.beginPath();
+  if(mood === 'happy'){ c.moveTo(46, 65); c.quadraticCurveTo(50, 70, 54, 65); }
+  else { c.moveTo(46, 64); c.quadraticCurveTo(50, 67.4, 54, 64); }
+  c.stroke();
+}
+function drawHead(c){
+  c.fillStyle = '#FFF9F2'; c.strokeStyle = '#E8D5C2'; c.lineWidth = 1.7;
+  ell(c, 50, 50, 30, 29); c.fill(); c.stroke();
+}
+
+/* --- 服装 --- */
+function cloth_overall(c){          /* 背带裤 */
+  c.fillStyle = '#7FA6D8';
+  rr(c, 26, 92, 48, 34, 9); c.fill();
+  c.fillStyle = '#6C93C6';
+  rr(c, 35, 76, 7.5, 22, 3); c.fill();
+  rr(c, 57.5, 76, 7.5, 22, 3); c.fill();
+  c.fillStyle = '#A8C4E8';
+  rr(c, 34, 104, 12, 10, 3); c.fill();      /* 口袋 */
+  c.fillStyle = '#F5E9D2';
+  ell(c, 40, 98, 2, 2); c.fill();
+  ell(c, 60, 98, 2, 2); c.fill();
+}
+function cloth_stripe(c){            /* 条纹衫 */
+  c.save();
+  rr(c, 24, 84, 52, 30, 10); c.clip();
+  c.fillStyle = '#FFF7EC'; c.fillRect(20, 80, 60, 40);
+  c.fillStyle = '#E68B9C';
+  for(var i = 0; i < 5; i++) c.fillRect(20, 84 + i * 7, 60, 3.6);
+  c.restore();
+  c.strokeStyle = '#E0CDB8'; c.lineWidth = 1.4;
+  rr(c, 24, 84, 52, 30, 10); c.stroke();
+}
+function cloth_dress(c){             /* 小裙子 */
+  c.fillStyle = '#F2A0B0';
+  c.beginPath();
+  c.moveTo(36, 84); c.lineTo(64, 84);
+  c.quadraticCurveTo(80, 118, 72, 126);
+  c.lineTo(28, 126);
+  c.quadraticCurveTo(20, 118, 36, 84);
+  c.closePath(); c.fill();
+  c.fillStyle = '#F8C6D0';
+  rr(c, 34, 82, 32, 8, 4); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.55)';
+  ell(c, 50, 112, 3.4, 3.4); c.fill();
+  ell(c, 40, 106, 2.6, 2.6); c.fill();
+  ell(c, 60, 106, 2.6, 2.6); c.fill();
+}
+function cloth_scarf(c){             /* 围巾 */
+  c.fillStyle = '#8FC7B4';
+  rr(c, 28, 72, 44, 12, 6); c.fill();
+  c.fillStyle = '#7BB6A2';
+  rr(c, 60, 80, 13, 26, 5); c.fill();
+  c.fillStyle = '#A9DCCB';
+  for(var i = 0; i < 3; i++) c.fillRect(62, 96 + i * 3.4, 9, 2);
+}
+
+/* --- 帽子 --- */
+function hat_strawberry(c){          /* 草莓帽 */
+  c.fillStyle = '#E8657A';
+  c.beginPath();
+  c.moveTo(50, 4);
+  c.bezierCurveTo(78, 10, 76, 32, 50, 34);
+  c.bezierCurveTo(24, 32, 22, 10, 50, 4);
+  c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.6)';
+  ell(c, 40, 18, 2, 3, -0.4); c.fill();
+  ell(c, 58, 14, 2, 3, 0.4); c.fill();
+  ell(c, 50, 26, 2, 3); c.fill();
+  c.fillStyle = '#7FB86A';
+  for(var i = 0; i < 5; i++){
+    var a = Math.PI + i * Math.PI / 4;
+    c.save(); c.translate(50, 6); c.rotate(a);
+    ell(c, 5, 0, 6, 2.8); c.fill();
+    c.restore();
+  }
+}
+function hat_wreath(c){              /* 花环 */
+  for(var i = 0; i < 9; i++){
+    var a = -Math.PI * 0.92 + i * (Math.PI * 0.84 / 8);
+    var x = 50 + Math.cos(a) * 33, y = 52 + Math.sin(a) * 31;
+    c.fillStyle = i % 2 ? '#7FB86A' : '#9BD186';
+    ell(c, x, y, 6, 4.6, a); c.fill();
+  }
+  for(var j = 0; j < 5; j++){
+    var a2 = -Math.PI * 0.86 + j * (Math.PI * 0.72 / 4);
+    var x2 = 50 + Math.cos(a2) * 33, y2 = 52 + Math.sin(a2) * 31;
+    c.fillStyle = j % 2 ? '#FBE3EC' : '#F6C6D0';
+    ell(c, x2, y2, 4.2, 4.2); c.fill();
+    c.fillStyle = '#F2C14E';
+    ell(c, x2, y2, 1.7, 1.7); c.fill();
+  }
+}
+function hat_night(c){               /* 睡帽 */
+  c.fillStyle = '#AFC8E8';
+  c.beginPath();
+  c.moveTo(26, 30);
+  c.quadraticCurveTo(32, -4, 62, 8);
+  c.quadraticCurveTo(84, 15, 76, 26);
+  c.quadraticCurveTo(52, 20, 26, 30);
+  c.closePath(); c.fill();
+  c.fillStyle = '#FFF9F0';
+  rr(c, 24, 26, 54, 9, 4.5); c.fill();
+  c.fillStyle = '#FFF9F0';
+  ell(c, 78, 12, 7, 7); c.fill();
+}
+function hat_crown(c){               /* 小皇冠 */
+  c.fillStyle = '#F2C14E';
+  c.beginPath();
+  c.moveTo(30, 28); c.lineTo(34, 6); c.lineTo(42, 18);
+  c.lineTo(50, 2); c.lineTo(58, 18); c.lineTo(66, 6);
+  c.lineTo(70, 28); c.closePath(); c.fill();
+  c.fillStyle = '#D9A02C';
+  rr(c, 30, 26, 40, 7, 3); c.fill();
+  c.fillStyle = '#E8657A'; ell(c, 50, 29.5, 3, 3); c.fill();
+  c.fillStyle = '#6C8FD8'; ell(c, 38, 29.5, 2.4, 2.4); c.fill();
+  ell(c, 62, 29.5, 2.4, 2.4); c.fill();
+}
+
+/* --- 配饰 --- */
+function acc_glass(c){               /* 圆眼镜 */
+  c.strokeStyle = '#8A6A50'; c.lineWidth = 2.2;
+  c.beginPath(); c.arc(42, 51, 9.4, 0, Math.PI * 2); c.stroke();
+  c.beginPath(); c.arc(58, 51, 9.4, 0, Math.PI * 2); c.stroke();
+  c.beginPath(); c.moveTo(51.4, 51); c.lineTo(48.6, 51); c.stroke();
+  c.beginPath(); c.moveTo(32.6, 50); c.lineTo(26, 48); c.stroke();
+  c.beginPath(); c.moveTo(67.4, 50); c.lineTo(74, 48); c.stroke();
+  c.fillStyle = 'rgba(190,225,240,.35)';
+  ell(c, 42, 51, 9.4, 9.4); c.fill();
+  ell(c, 58, 51, 9.4, 9.4); c.fill();
+}
+function acc_bow(c){                 /* 蝴蝶结 */
+  c.fillStyle = '#E8657A';
+  c.beginPath(); c.moveTo(64, 24); c.lineTo(80, 16); c.lineTo(80, 32); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(64, 24); c.lineTo(48, 16); c.lineTo(48, 32); c.closePath(); c.fill();
+  c.fillStyle = '#C74A5F';
+  ell(c, 64, 24, 4.4, 4.4); c.fill();
+}
+function acc_star(c){                /* 小星星徽章 */
+  c.save(); c.translate(72, 104); c.rotate(Math.sin(Date.now() / 700) * 0.16);
+  c.fillStyle = '#F2C14E'; star(c, 0, 0, 10, 4.4); c.fill();
+  c.fillStyle = '#FFF0BE'; star(c, 0, 0, 5.4, 2.4); c.fill();
+  c.restore();
+}
+function acc_wing(c){                /* 小翅膀（画在身体后面） */
+  c.fillStyle = 'rgba(255,255,255,.94)'; c.strokeStyle = '#E4D6E8'; c.lineWidth = 1.4;
+  [[0, -1], [0, 1]].forEach(function(d){
+    c.save(); c.translate(50 + d[1] * 26, 96); c.scale(d[1], 1);
+    c.beginPath();
+    c.moveTo(0, 6);
+    c.quadraticCurveTo(24, -6, 30, -22);
+    c.quadraticCurveTo(20, -14, 14, -14);
+    c.quadraticCurveTo(20, -26, 16, -30);
+    c.quadraticCurveTo(4, -14, 0, 6);
+    c.closePath(); c.fill(); c.stroke();
+    c.restore();
+  });
+}
+
+/* --- 背景 --- */
+function bg_dusk(c){
+  var g = c.createLinearGradient(0, 0, 0, 132);
+  g.addColorStop(0, '#FFE9C8'); g.addColorStop(0.55, '#FBD9BE'); g.addColorStop(1, '#F3C6A4');
+  c.fillStyle = g; c.fillRect(0, 0, 100, 132);
+  c.fillStyle = 'rgba(255,236,172,.95)';
+  ell(c, 74, 26, 17, 17); c.fill();
+  c.fillStyle = 'rgba(226,193,160,.75)';
+  c.beginPath(); c.moveTo(0, 118); c.quadraticCurveTo(28, 100, 52, 116);
+  c.quadraticCurveTo(78, 130, 100, 112); c.lineTo(100, 132); c.lineTo(0, 132);
+  c.closePath(); c.fill();
+}
+function bg_sakura(c){
+  var g = c.createLinearGradient(0, 0, 0, 132);
+  g.addColorStop(0, '#FDEEF2'); g.addColorStop(1, '#F8D9E2');
+  c.fillStyle = g; c.fillRect(0, 0, 100, 132);
+  for(var i = 0; i < 14; i++){
+    var x = (i * 37 % 100), y = (i * 53 % 132);
+    c.fillStyle = i % 2 ? 'rgba(246,198,208,.85)' : 'rgba(251,227,236,.95)';
+    ell(c, x, y, 4.2, 3, i); c.fill();
+  }
+  c.fillStyle = '#B98A96';
+  c.strokeStyle = '#B98A96'; c.lineWidth = 3; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(0, 14); c.quadraticCurveTo(40, 4, 100, 20); c.stroke();
+}
+function bg_night(c){
+  var g = c.createLinearGradient(0, 0, 0, 132);
+  g.addColorStop(0, '#2E3A5C'); g.addColorStop(1, '#5A6D96');
+  c.fillStyle = g; c.fillRect(0, 0, 100, 132);
+  c.fillStyle = '#FFF3D0';
+  ell(c, 76, 24, 12, 12); c.fill();
+  c.fillStyle = 'rgba(46,58,92,.9)';
+  ell(c, 69, 20, 10, 10); c.fill();
+  for(var i = 0; i < 18; i++){
+    var x = (i * 41 % 100), y = (i * 29 % 110);
+    c.fillStyle = 'rgba(255,255,255,' + (0.35 + (i % 3) * 0.22) + ')';
+    ell(c, x, y, 1.4, 1.4); c.fill();
+  }
+}
+function bg_grass(c){
+  var g = c.createLinearGradient(0, 0, 0, 132);
+  g.addColorStop(0, '#DFF0FA'); g.addColorStop(0.6, '#EAF6E8'); g.addColorStop(1, '#BFE0B0');
+  c.fillStyle = g; c.fillRect(0, 0, 100, 132);
+  c.fillStyle = 'rgba(255,255,255,.85)';
+  ell(c, 24, 22, 14, 7); c.fill();
+  ell(c, 34, 18, 10, 8); c.fill();
+  c.fillStyle = '#A8D691';
+  c.beginPath(); c.moveTo(0, 116); c.quadraticCurveTo(50, 100, 100, 118);
+  c.lineTo(100, 132); c.lineTo(0, 132); c.closePath(); c.fill();
+  c.fillStyle = '#F6C6D0';
+  ell(c, 18, 122, 3.4, 3.4); c.fill();
+  ell(c, 82, 124, 3, 3); c.fill();
+}
+
+/* ============================================================
+   3. 道具清单
+   box 是这件东西在兔子坐标系里的范围，用来裁小图标
+   ============================================================ */
+var ITEMS = [
+  /* 帽子 */
+  { id:'h_straw',  cat:'hat',   name:'草莓帽', rar:1, draw:hat_strawberry, box:[16,0,68,38] },
+  { id:'h_wreath', cat:'hat',   name:'花环',   rar:1, draw:hat_wreath,     box:[14,16,72,72] },
+  { id:'h_night',  cat:'hat',   name:'睡帽',   rar:2, draw:hat_night,      box:[20,-6,68,46] },
+  { id:'h_crown',  cat:'hat',   name:'小皇冠', rar:3, draw:hat_crown,      box:[26,0,48,36] },
+  /* 衣服 */
+  { id:'c_overall',cat:'cloth', name:'背带裤', rar:1, draw:cloth_overall,  box:[22,72,56,58] },
+  { id:'c_stripe', cat:'cloth', name:'条纹衫', rar:1, draw:cloth_stripe,   box:[20,78,60,40] },
+  { id:'c_dress',  cat:'cloth', name:'小裙子', rar:2, draw:cloth_dress,    box:[18,78,64,52] },
+  { id:'c_scarf',  cat:'cloth', name:'围巾',   rar:2, draw:cloth_scarf,    box:[24,68,54,42] },
+  /* 配饰 */
+  { id:'a_glass',  cat:'acc',   name:'圆眼镜', rar:1, draw:acc_glass,      box:[22,38,56,26] },
+  { id:'a_bow',    cat:'acc',   name:'蝴蝶结', rar:1, draw:acc_bow,        box:[44,12,40,28] },
+  { id:'a_star',   cat:'acc',   name:'小星星', rar:2, draw:acc_star,       box:[60,92,26,26] },
+  { id:'a_wing',   cat:'acc',   name:'小翅膀', rar:3, draw:acc_wing,       box:[10,60,80,44] },
+  /* 背景 */
+  { id:'b_dusk',   cat:'bg',    name:'黄昏',   rar:1, draw:bg_dusk,        box:[0,0,100,132], fill:true },
+  { id:'b_grass',  cat:'bg',    name:'草地',   rar:1, draw:bg_grass,       box:[0,0,100,132], fill:true },
+  { id:'b_sakura', cat:'bg',    name:'樱花',   rar:2, draw:bg_sakura,      box:[0,0,100,132], fill:true },
+  { id:'b_night',  cat:'bg',    name:'星空',   rar:2, draw:bg_night,       box:[0,0,100,132], fill:true }
+];
+
+var CATS = [
+  { id:'hat',   name:'帽子' },
+  { id:'cloth', name:'衣服' },
+  { id:'acc',   name:'配饰' },
+  { id:'bg',    name:'背景' }
+];
+
+function itemById(id){
+  for(var i = 0; i < ITEMS.length; i++) if(ITEMS[i].id === id) return ITEMS[i];
+  return null;
+}
+function itemsOf(cat){
+  var out = [];
+  for(var i = 0; i < ITEMS.length; i++) if(ITEMS[i].cat === cat) out.push(ITEMS[i]);
+  return out;
+}
+
+/* ============================================================
+   4. 存档
+   ============================================================ */
+var S = {
+  carrots: START_CARROT,
+  owned: [],
+  worn: { hat:null, cloth:null, acc:null, bg:'b_dusk' },
+  lastTick: Date.now(),
+  nextFreeDraw: 0,
+  drawn: 0
+};
+
+function loadSave(){
+  var raw = Store.get(SAVE_KEY, null);
+  if(raw && typeof raw === 'object'){
+    if(typeof raw.carrots === 'number') S.carrots = raw.carrots;
+    if(raw.owned instanceof Array) S.owned = raw.owned;
+    if(raw.worn && typeof raw.worn === 'object') S.worn = raw.worn;
+    if(typeof raw.lastTick === 'number') S.lastTick = raw.lastTick;
+    if(typeof raw.nextFreeDraw === 'number') S.nextFreeDraw = raw.nextFreeDraw;
+    if(typeof raw.drawn === 'number') S.drawn = raw.drawn;
+  }
+  /* 默认送一个背景，不然展示台是空的 */
+  if(S.owned.indexOf('b_dusk') < 0) S.owned.push('b_dusk');
+  if(!S.worn.bg) S.worn.bg = 'b_dusk';
+  syncBest();
+}
+/* 把收集进度写进全局存档，大厅卡片上就能显示「已收集 N 件」 */
+function syncBest(){ Store.setBest(GAME_ID, 'collect', S.owned.length); }
+function saveNow(){ S.lastTick = Date.now(); Store.set(SAVE_KEY, S); }
+
+function collectOffline(){
+  var now = Date.now();
+  var sec = Math.max(0, (now - S.lastTick) / 1000);
+  if(sec < 30) return 0;
+  sec = Math.min(sec, OFFLINE_CAP);
+  var gain = Math.floor(sec * CARROT_PER_SEC);
+  if(gain > 0) S.carrots += gain;
+  S.lastTick = now;
+  return gain;
+}
+
+/* ============================================================
+   5. 画展示台
+   ============================================================ */
+var stage = $('stage'), sctx = stage.getContext('2d');
+var SW = 0, SH = 0;
+
+function resizeStage(){
+  var box = stage.parentElement;
+  SW = box.clientWidth; SH = box.clientHeight;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  stage.width = Math.round(SW * dpr);
+  stage.height = Math.round(SH * dpr);
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', function(){ resizeStage(); drawStage(); });
+window.addEventListener('orientationchange', function(){ setTimeout(function(){ resizeStage(); drawStage(); }, 250); });
+
+/* 把兔子坐标系（100×132）映射到画布上并居中 */
+function withRabbit(c, W, H, fn){
+  var S2 = Math.min(W / 108, H / 142);
+  c.save();
+  c.translate(W / 2, H / 2);
+  c.scale(S2, S2);
+  c.translate(-50, -66);
+  fn(c);
+  c.restore();
+}
+
+function drawStage(){
+  if(!SW) resizeStage();
+  var t = performance.now() / 1000;
+  var bgItem = itemById(S.worn.bg);
+  var accItem = itemById(S.worn.acc);
+  var clothItem = itemById(S.worn.cloth);
+  var hatItem = itemById(S.worn.hat);
+
+  sctx.clearRect(0, 0, SW, SH);
+
+  /* 背景铺满整个展示台，不跟兔子的坐标缩放走 */
+  if(bgItem && bgItem.fill){
+    var sc = Math.max(SW / 100, SH / 132);
+    sctx.save();
+    sctx.translate(SW / 2, SH / 2);
+    sctx.scale(sc, sc);
+    sctx.translate(-50, -66);
+    bgItem.draw(sctx, t);
+    sctx.restore();
+  } else {
+    var g = sctx.createLinearGradient(0, 0, 0, SH);
+    g.addColorStop(0, '#FFF7EC'); g.addColorStop(1, '#FBE8D6');
+    sctx.fillStyle = g; sctx.fillRect(0, 0, SW, SH);
+  }
+
+  withRabbit(sctx, SW, SH, function(c){
+    if(accItem && accItem.id === 'a_wing') accItem.draw(c, t);   /* 翅膀在身后 */
+    drawBody(c, t);
+    drawHead(c);
+    drawFace(c, 'idle', t);
+    if(clothItem) clothItem.draw(c, t);
+    if(hatItem) hatItem.draw(c, t);
+    if(accItem && accItem.id !== 'a_wing') accItem.draw(c, t);
+  });
+}
+
+/* ============================================================
+   6. 道具小图标
+   ============================================================ */
+function drawIcon(cv, item, dim){
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var w = cv.clientWidth || 64, h = cv.clientHeight || 64;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  var c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+
+  if(!item) return;
+  var b = item.box;
+  var pad = 4;
+  var sc = Math.min((w - pad * 2) / b[2], (h - pad * 2) / b[3]);
+  c.save();
+  /* 未解锁的画淡一点：看得见、想要，但明显还不是你的 */
+  if(dim) c.globalAlpha = 0.45;
+  c.translate(w / 2, h / 2);
+  c.scale(sc, sc);
+  c.translate(-(b[0] + b[2] / 2), -(b[1] + b[3] / 2));
+  c.save();
+  c.beginPath(); c.rect(b[0], b[1], b[2], b[3]); c.clip();
+  item.draw(c, performance.now() / 1000);
+  c.restore();
+  c.restore();
+}
+
+/* ============================================================
+   7. 界面
+   ============================================================ */
+var curCat = 'hat';
+
+function renderTabs(){
+  var html = CATS.map(function(cat){
+    var all = itemsOf(cat.id), own = 0;
+    all.forEach(function(it){ if(S.owned.indexOf(it.id) >= 0) own++; });
+    return '<button data-cat="' + cat.id + '"' + (curCat === cat.id ? ' class="on"' : '') + '>' +
+           cat.name + '<i>' + own + '/' + all.length + '</i></button>';
+  }).join('');
+  $('tabs').innerHTML = html;
+  Array.prototype.forEach.call($('tabs').querySelectorAll('button'), function(b){
+    b.addEventListener('click', function(){
+      curCat = b.dataset.cat;
+      GameAudio.unlock(); GameAudio.sfx('ui');
+      renderTabs(); renderGrid();
+    });
+  });
+}
+
+function renderGrid(){
+  var list = itemsOf(curCat);
+  var html = list.map(function(it){
+    var owned = S.owned.indexOf(it.id) >= 0;
+    var worn = S.worn[it.cat] === it.id;
+    var cls = 'item' + (owned ? '' : ' locked') + (worn ? ' worn' : '');
+    var rar = RARITY[it.rar];
+    return '<div class="' + cls + '" data-id="' + it.id + '">' +
+             '<canvas></canvas>' +
+             '<span class="rar" style="color:' + rar.color + '">' + rar.name + '</span>' +
+             '<span class="nm">' + it.name + '</span>' +
+           '</div>';
+  }).join('');
+  $('grid').innerHTML = html;
+
+  Array.prototype.forEach.call($('grid').querySelectorAll('.item'), function(el){
+    var it = itemById(el.dataset.id);
+    var owned = S.owned.indexOf(it.id) >= 0;
+    drawIcon(el.querySelector('canvas'), it, !owned);
+    if(!owned){
+      el.addEventListener('click', function(){ toast('还没抽到这件，先去开盲盒吧'); });
+      return;
+    }
+    el.addEventListener('click', function(){
+      GameAudio.unlock(); GameAudio.sfx('ui');
+      /* 再点一次就是脱下来 */
+      S.worn[it.cat] = (S.worn[it.cat] === it.id) ? null : it.id;
+      saveNow();
+      renderGrid(); drawStage(); updateStageTag();
+    });
+  });
+}
+
+function updateStageTag(){
+  var names = ['hat','cloth','acc'].map(function(k){
+    var it = itemById(S.worn[k]);
+    return it ? it.name : null;
+  }).filter(Boolean);
+  $('stageTag').textContent = names.length ? names.join(' · ') : '兔子还光着呢，给它抽件衣服吧';
+}
+
+function renderCarrots(){
+  $('carrotNum').textContent = Math.floor(S.carrots);
+  $('rate').textContent = '+' + CARROT_PER_SEC.toFixed(1) + '/秒';
+}
+
+var toastTimer = null;
+function toast(msg){
+  var el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 1600);
+}
+
+/* ============================================================
+   8. 开盲盒
+   ============================================================ */
+function drawablePool(){
+  return ITEMS.filter(function(it){
+    return S.owned.indexOf(it.id) < 0;
+  });
+}
+function pickByRarity(pool){
+  var total = 0;
+  pool.forEach(function(it){ total += RARITY[it.rar].weight; });
+  var roll = Math.random() * total;
+  for(var i = 0; i < pool.length; i++){
+    roll -= RARITY[pool[i].rar].weight;
+    if(roll <= 0) return pool[i];
+  }
+  return pool[pool.length - 1];
+}
+
+var drawing = false;
+function openBox(free){
+  if(drawing) return;
+  var pool = drawablePool();
+  if(!pool.length){ toast('所有服装都抽齐啦，等后续新款式'); return; }
+  if(!free && S.carrots < DRAW_COST){ toast('胡萝卜不够，等兔子多种一会儿'); return; }
+
+  drawing = true;
+  if(!free){ S.carrots -= DRAW_COST; saveNow(); renderCarrots(); }
+  GameAudio.unlock();
+
+  var wrap = $('drawWrap'), box = $('drawBox'), tip = $('drawTip');
+  box.className = 'box';
+  box.innerHTML = '<canvas></canvas>';
+  tip.textContent = '正在打开…';
+  wrap.classList.remove('hide');
+
+  var got = pickByRarity(pool);
+  S.owned.push(got.id);
+  S.drawn++;
+  S.worn[got.cat] = got.id;          /* 抽到就自动穿上，立刻看到效果 */
+
+  setTimeout(function(){
+    box.classList.add('pop');
+    GameAudio.sfx('win');
+    tip.textContent = RARITY[got.rar].name + ' · ' + got.name;
+    drawIcon(box.querySelector('canvas'), got);
+    if(navigator.vibrate) navigator.vibrate(got.rar >= 2 ? [30, 50, 60] : 26);
+  }, 620);
+
+  setTimeout(function(){
+    wrap.classList.add('hide');
+    drawing = false;
+    syncBest();
+    saveNow();
+    renderTabs(); renderGrid(); drawStage(); updateStageTag();
+    if(got.rar >= 3) toast('抽到传说款「' + got.name + '」！');
+  }, 1900);
+}
+
+/* 免费抽：真机上换成激励视频 */
+$('btnAd').addEventListener('click', function(){
+  var now = Date.now();
+  if(now < S.nextFreeDraw){
+    toast('还要等 ' + Math.ceil((S.nextFreeDraw - now) / 1000) + ' 秒');
+    return;
+  }
+  if(!drawablePool().length){ toast('所有服装都抽齐啦'); return; }
+  showAd('freedraw', function(ok){
+    if(!ok) return;
+    S.nextFreeDraw = Date.now() + AD_DRAW_CD;
+    saveNow();
+    openBox(true);
+  });
+});
+
+/* 激励视频接入点：在微信小游戏里挂上 wx.createRewardedVideoAd 就会走真广告，
+   在浏览器里直接给奖励，方便调试 */
+var adInstance = null;
+function showAd(placement, cb){
+  if(typeof wx !== 'undefined' && wx.createRewardedVideoAd){
+    try{
+      if(!adInstance) adInstance = wx.createRewardedVideoAd({ adUnitId: 'AD_UNIT_ID_PLACEHOLDER' });
+      var onClose = function(res){
+        adInstance.offClose(onClose);
+        cb(!!(res && res.isEnded));
+      };
+      adInstance.onClose(onClose);
+      adInstance.show().catch(function(){ cb(true); });
+      return;
+    }catch(e){ /* 落到下面的兜底 */ }
+  }
+  cb(true);
+}
+
+$('btnDraw').addEventListener('click', function(){ openBox(false); });
+
+/* ============================================================
+   9. 形象卡
+   ============================================================ */
+$('btnCard').addEventListener('click', function(){
+  GameAudio.unlock(); GameAudio.sfx('ui');
+  var W = 600, H = 800;
+  var cv = document.createElement('canvas');
+  var dpr = 2;
+  cv.width = W * dpr; cv.height = H * dpr;
+  var c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  /* 底色 */
+  var g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#FFF8EE'); g.addColorStop(1, '#FBE6D4');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+
+  /* 兔子 */
+  var bgItem = itemById(S.worn.bg);
+  var accItem = itemById(S.worn.acc);
+  var clothItem = itemById(S.worn.cloth);
+  var hatItem = itemById(S.worn.hat);
+  var stageTop = 96, stageH = 500;
+  c.save();
+  c.beginPath(); rr(c, 40, stageTop, W - 80, stageH, 28); c.clip();
+  if(bgItem && bgItem.fill){
+    c.save();
+    var sc = Math.max((W - 80) / 100, stageH / 132);
+    c.translate(W / 2, stageTop + stageH / 2);
+    c.scale(sc, sc); c.translate(-50, -66);
+    bgItem.draw(c, 0);
+    c.restore();
+  }
+  /* 兔子：withRabbit 会把兔子居中到给定的 W×H 里，所以这里只传展示区高度，
+     再用 translate 把它挪到展示区的垂直位置 */
+  withRabbit(c, W, stageH, function(cc){
+    cc.translate(0, stageTop);
+    if(accItem && accItem.id === 'a_wing') accItem.draw(cc, 0);
+    drawBody(cc, 1.2);
+    drawHead(cc);
+    drawFace(cc, 'happy', 1.2);
+    if(clothItem) clothItem.draw(cc, 0);
+    if(hatItem) hatItem.draw(cc, 0);
+    if(accItem && accItem.id !== 'a_wing') accItem.draw(cc, 0);
+  });
+  c.restore();
+
+  /* 文字 */
+  c.fillStyle = '#4E3E36';
+  c.font = '700 40px "PingFang SC","Microsoft YaHei",sans-serif';
+  c.textAlign = 'center';
+  c.fillText('我的兔子', W / 2, 62);
+
+  var names = ['hat','cloth','acc'].map(function(k){ return itemById(S.worn[k]); }).filter(Boolean);
+  c.font = '500 22px "PingFang SC","Microsoft YaHei",sans-serif';
+  c.fillStyle = '#8A7263';
+  c.fillText(names.length ? names.map(function(it){ return it.name; }).join(' · ') : '今天的兔子还没打扮', W / 2, 640);
+
+  /* 已收集进度 */
+  var own = 0;
+  ITEMS.forEach(function(it){ if(S.owned.indexOf(it.id) >= 0) own++; });
+  c.font = '600 24px "PingFang SC","Microsoft YaHei",sans-serif';
+  c.fillStyle = '#D8863C';
+  c.fillText('已收集 ' + own + ' / ' + ITEMS.length + ' 件', W / 2, 686);
+
+  c.font = '400 19px "PingFang SC","Microsoft YaHei",sans-serif';
+  c.fillStyle = '#BCA894';
+  c.fillText('兔子的衣橱 · 来抽一只属于你的兔子', W / 2, 736);
+
+  var url = cv.toDataURL('image/png');
+  $('cardImg').src = url;
+  $('cardDl').href = url;
+  $('cardWrap').classList.remove('hide');
+});
+
+$('cardClose').addEventListener('click', function(){
+  $('cardWrap').classList.add('hide');
+});
+$('cardWrap').addEventListener('click', function(e){
+  if(e.target === $('cardWrap')) $('cardWrap').classList.add('hide');
+});
+
+/* ============================================================
+   10. 主循环
+   ============================================================ */
+var lastT = performance.now();
+function loop(now){
+  var dt = Math.min(0.1, (now - lastT) / 1000);
+  lastT = now;
+
+  if(S.carrots < 99999) S.carrots += CARROT_PER_SEC * dt;
+  renderCarrots();
+  drawStage();
+
+  var cd = S.nextFreeDraw - Date.now();
+  var btn = $('btnAd');
+  var old = btn.querySelector('.cd');
+  if(cd > 0){
+    if(!old){
+      var d = document.createElement('span');
+      d.className = 'cd';
+      btn.appendChild(d);
+    }
+    btn.querySelector('.cd').textContent = Math.ceil(cd / 1000) + ' 秒后可再抽';
+  } else if(old){
+    old.remove();
+  }
+
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   11. 启动
+   ============================================================ */
+loadSave();
+var offline = collectOffline();
+if(offline > 0) toast('兔子帮你种了 ' + offline + ' 个胡萝卜');
+renderTabs();
+renderGrid();
+renderCarrots();
+resizeStage();
+drawStage();
+updateStageTag();
+
+setInterval(saveNow, 8000);
+window.addEventListener('pagehide', saveNow);
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden) saveNow();
+  else { var g = collectOffline(); if(g > 0) toast('又种了 ' + g + ' 个胡萝卜'); saveNow(); }
+});
+
+GameAudio.autoUnlock();
+requestAnimationFrame(loop);
+
+/* 给自动化测试留的钩子 */
+window.__closet = {
+  state: function(){
+    return {
+      carrots: Math.floor(S.carrots),
+      owned: S.owned.length,
+      total: ITEMS.length,
+      worn: S.worn,
+      drawn: S.drawn
+    };
+  },
+  S: S,
+  openBox: openBox,
+  giveCarrots: function(n){ S.carrots += n; saveNow(); renderCarrots(); },
+  clearAll: function(){ S.carrots = 0; },
+  render: function(){ renderTabs(); renderGrid(); drawStage(); updateStageTag(); }
+};
+})();
+</script>
+</body>
+</html>
