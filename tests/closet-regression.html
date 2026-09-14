@@ -464,6 +464,24 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   m3.setActive(false);
   C.closeSheet();
 
+  /* ---------------- 14. 十连抽 ---------------- */
+  log('');
+  log('【14】十连抽');
+  C.giveCarrots(300);
+  const ownBefore = C.state().owned;
+  const g10a = C.S.carrots;
+  C.openBox(false, 10);
+  await sleep(4600);                   /* 十连逐张揭示要几秒 */
+  const ownGain = C.state().owned - ownBefore;
+  ok(ownGain === 10, '十连真的给了 10 件（实际 ' + ownGain + '）');
+  /* 首次开盒会顺手完成每日任务「开盲盒 1 次」，自动发 +20 奖励，所以净扣可能是 250 */
+  const net10 = Math.round(g10a - C.S.carrots);
+  ok(net10 === 270 || net10 === 250, '十连扣费正确（270，含任务奖励净扣 ' + net10 + '）');
+  const wornNow = C.S.worn;
+  ok(!!(wornNow.hat || wornNow.cloth || wornNow.acc || wornNow.hand),
+     '抽到的东西自动穿上了最高稀有度的一件');
+  ok(!C.sheetOpen(), '揭示完面板收起');
+
   log('');
   log('========== 通过 ' + pass + ' 项，失败 ' + fail + ' 项 ==========');
   O().textContent = 'RESULT ' + (fail === 0 ? 'ALLPASS' : 'FAIL') + ' ' + pass + '/' + (pass + fail) + '\n' + out.join('\n');
