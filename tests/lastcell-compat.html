@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#1a1a1a}
+iframe{border:0;display:block;background:#fff}
+#out{color:#9f9;font:11px/1.6 monospace;padding:10px;white-space:pre-wrap}
+</style></head><body>
+<iframe id="f" src="/games/lastcell.html" width="400" height="880"></iframe>
+<div id="out">waiting</div>
+<script>
+const out = [];
+const O = () => document.getElementById('out');
+function log(s){ out.push(s); O().textContent = out.join('\n'); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+(async function(){
+  const f = document.getElementById('f');
+  let w = f.contentWindow;
+  for(let i = 0; i < 600 && !(w.document && w.document.querySelector('.cell')); i++) await sleep(25);
+  const d = w.document;
+  let pass = 0, fail = 0;
+  const ok = (c, m) => { if(c){ pass++; log('  ✓ ' + m); } else { fail++; log('  ✗ ' + m); } };
+
+  log('《最后一格》在共用样式表改动后是否正常');
+  ok(d.querySelectorAll('.cell').length === 64, '棋盘 64 格');
+
+  /* 结算面板在最后一格里是动态生成的，这里直接注入同样的结构，
+     检查 theme.css 新增的重置有没有把它带偏 */
+  const host = d.createElement('div');
+  host.innerHTML = '<div class="resultRow" id="probeRow">' +
+    '<div class="box"><small>本局消除</small><b>26</b></div>' +
+    '<div class="box"><small>收获</small><b>58</b></div>' +
+    '<div class="box"><small>最高纪录</small><b>26</b></div></div>';
+  d.body.appendChild(host);
+
+  const box = host.querySelector('.box');
+  const cs = w.getComputedStyle(box);
+  const r = box.getBoundingClientRect();
+  const small = box.querySelector('small').getBoundingClientRect();
+  const b = box.querySelector('b').getBoundingClientRect();
+  ok(cs.display === 'block', '结算卡片 display:block（' + cs.display + '）');
+  ok(cs.height !== '170px', '结算卡片高度没被盲盒的 170px 固定值影响（' + cs.height + '）');
+  ok(cs.animationName === 'none', '结算卡片没有动画（' + cs.animationName + '）');
+  ok(r.height > 30 && r.height < 90, '结算卡片高度正常（' + Math.round(r.height) + 'px）');
+  ok(b.top >= small.bottom - 2, '标签和数字是上下排列的（本作原本就是这样）');
+  ok(cs.textAlign !== 'center', '文本对齐没被共用样式表改动（' + cs.textAlign + '）');
+  log('');
+  log('========== 通过 ' + pass + ' 项，失败 ' + fail + ' 项 ==========');
+  O().textContent = 'RESULT ' + (fail === 0 ? 'ALLPASS' : 'FAIL') + '\n' + out.join('\n');
+})();
+</script>
+</body></html>

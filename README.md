@@ -32,6 +32,25 @@
 弹层给两个选择：看广告 +5 步继续消，或者收下胡萝卜。
 广告点位是「我还想再消一会儿」，而不是「我输了要救」，这两者的转化率差很远。
 
+**棋盘上是五种萝卜：胡萝卜 / 白萝卜 / 紫萝卜 / 青萝卜 / 樱桃萝卜。**
+既然叫「采胡萝卜」，棋子也统一成萝卜，名字和画面就对上了。
+
+三消的命门是**一眼分辨**——每走一步都要盯着看半天，手感立刻就没了。所以五种萝卜在
+**颜色和轮廓两个维度上同时**拉开：
+
+| 萝卜 | 色相 | 轮廓 |
+| --- | --- | --- |
+| 胡萝卜 | 橙 | 最细最长的锥形 + 羽状叶 |
+| 白萝卜 | 米白 | 最宽的胖柱形，底部收成细根 + 叶冠 + 横向根纹 |
+| 紫萝卜 | 紫 | 上宽下尖的水滴 + 白尖 |
+| 青萝卜 | 绿 | 最宽最矮的扁圆蛋形 |
+| 樱桃萝卜 | 玫红 | 最小的小球 + 细长小尾 |
+
+两个维度各自都够用，色弱玩家靠轮廓也能分清。
+白萝卜比较特殊：米白的本体和浅茶色底格天生靠不近，**它立住轮廓靠的是深色描边而不是填充色**，
+所以底格的茶色也特意压深了一档——不然整块盘面发平，浅色棋子等于隐形。
+`tests/readability.html` 就是专门用来看这件事的（实际尺寸 vs 缩到 46% 眯眼看）。
+
 **兔子会站在棋盘旁边看着你消，而且穿的就是你在衣橱里配的那一套。**
 它同时就是操作提示本身——气泡里的台词随状态变化，语气是撒娇恳求那一挂的：
 
@@ -118,9 +137,12 @@ preview/                效果截图
   sound.png             声音设置
   small.png             360×780 小屏
   buddy.png             兔子 × 搭配 × 状态放大对照
-tests/                  本地测试页（已 gitignore，不随仓库发布）
-  closet-regression.html  65 项功能断言的回归测试
+  readability.png       棋子辨识度对照：实际尺寸 vs 缩到 46%（眯眼测试）
+tests/                  测试与校验（可跑，不是存档）
+  check.mjs               结构校验：语法 / id 引用 / id 查重 / 资源 / 用词
+  closet-regression.html  70 项功能断言的回归测试
   screenshot-host.html    截图宿主（?mode=work|react|round|sound|buddyzoom）
+  readability.html        棋子在真实尺寸与缩放下的可辨性对照
   lastcell-compat.html    验证共用样式表的改动没有影响《最后一格》
 alt/index.html          另一个实现版本，留档备查
 ```
@@ -169,32 +191,48 @@ BGM 是 C–G–Am–F 四小节循环的八音盒。
 
 ## 怎么验证
 
-这些游戏大量使用 Canvas 绘画（jsdom 没有 canvas 实现），所以**必须用真实浏览器测**：
+这些游戏大量使用 Canvas 绘画（jsdom 没有 canvas 实现），所以**必须用真实浏览器测**。
+
+**第一步：结构校验**（很快，先跑这个）
 
 ```bash
-# 起静态服务，然后在浏览器里打开测试页
+node tests/check.mjs
+```
+
+它会检查各脚本的语法、`$()` 引用的 id 是否都存在、id 有没有重复、本地资源是否都在、
+大厅清单指向的文件是否存在、CSS 括号是否配平、以及对话措辞。
+**脚本语法错误一定要靠它抓** —— 内联脚本里一个语法错会让整页静默停在初始状态，
+不报错也不白屏，是这类项目里最难查的问题。
+
+**第二步：功能回归 + 截图**
+
+```bash
 python -m http.server 8000
-# 回归测试（65 项断言，跑完页面顶部会输出 RESULT ALLPASS）
+# 回归测试（70 项断言，页面顶部会输出 RESULT ALLPASS）
 open http://127.0.0.1:8000/tests/closet-regression.html
+# 棋子辨识度对照：实际尺寸 vs 缩到 46%
+open http://127.0.0.1:8000/tests/readability.html
 ```
 
 无头跑法（CI 里可用）：
 
 ```bash
 chrome --headless=new --enable-unsafe-swiftshader --autoplay-policy=no-user-gesture-required \
-       --virtual-time-budget=180000 --dump-dom \
+       --virtual-time-budget=200000 --dump-dom \
        "http://127.0.0.1:8000/tests/closet-regression.html" | grep -o "RESULT[A-Z ]*"
 ```
 
-三个坑值得记下来：
+四个坑值得记下来：
 
 - **无头环境下 `requestAnimationFrame` 几乎不跑**，任何靠 rAF 推进的动画逻辑都测不到。
   所以 `match3.js` 提供了 `tick(dt)`，测试用它手动推进，结果就是确定的。
-- **无头环境下音频时钟不随虚拟时间前进**，`stepIdx` 涨不涨说明不了问题。
-  可靠的验证方式是给 `AudioContext.prototype.createOscillator` 挂计数：真的合成出音，
-  振荡器数量就会增长。
+- **无头环境下音频时钟不随虚拟时间前进**，所以「BGM 的音符计数有没有涨」测不出真相。
+  可靠的验证方式是给 `AudioContext.prototype.createOscillator` 挂计数：真的在合成，数量就会增长。
+- **改 iframe 的 width/height 在无头下不一定触发内部的 resize 事件**，
+  要显式 `dispatchEvent(new Event('resize'))` 才测得到游戏自己的重算逻辑。
 - 无头 Chrome 的 `--window-size` 有最小宽度限制（504），要测真实手机宽度得用
   iframe 固定尺寸。
+- 截图前要留足 sleep，否则会截到入场动画的中间帧 —— 半透明的弹层看起来很像 bug。
 
 ## 本地运行
 

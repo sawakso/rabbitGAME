@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#1d1a17;font-family:sans-serif}
+.row{display:flex;gap:18px;padding:14px;align-items:flex-start}
+figure{margin:0;text-align:center}
+figcaption{color:#ddd;font-size:12px;padding:6px}
+iframe{border:0;display:block;background:#fff;border-radius:14px}
+.squint{transform:scale(.46);transform-origin:top left}
+.squintBox{width:166px;height:359px;overflow:hidden}
+</style></head><body>
+<div class="row">
+  <figure>
+    <figcaption>实际尺寸 360×780（最窄的手机）</figcaption>
+    <iframe id="a" src="/games/bunnycloset.html" width="360" height="780"></iframe>
+  </figure>
+  <figure>
+    <figcaption>缩到 46%：相当于眯眼看 / 远看</figcaption>
+    <div class="squintBox"><iframe id="b" class="squint" src="/games/bunnycloset.html" width="360" height="780"></iframe></div>
+  </figure>
+</div>
+<script>
+/* 两个 iframe 都驱动到中盘，让盘面上同时出现五种萝卜 */
+function drive(id){
+  const f = document.getElementById(id);
+  f.addEventListener('load', function(){
+    const w = f.contentWindow;
+    let n = 0;
+    const it = setInterval(function(){
+      n++;
+      const C = w.__closet;
+      if(C && C.m3()){
+        clearInterval(it);
+        C.S.worn.hat = 'h_straw'; C.S.worn.cloth = 'c_overall';
+        C.switchView('work');
+        setTimeout(function(){ C.startRound(); }, 40);
+      }
+      if(n > 300) clearInterval(it);
+    }, 25);
+  });
+}
+drive('a'); drive('b');
+</script>
+</body></html>

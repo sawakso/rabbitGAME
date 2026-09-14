@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#1d1a17;display:flex;justify-content:center;align-items:flex-start;padding:14px}
+iframe{border:0;display:block;background:#fff;border-radius:16px;box-shadow:0 10px 34px rgba(0,0,0,.45)}
+</style></head><body>
+<iframe id="f"></iframe>
+<script>
+/* 截图宿主：?mode=work|react|round|sound & w=390 & h=844 */
+const q = new URLSearchParams(location.search);
+const mode = q.get('mode') || 'work';
+const W = +(q.get('w') || 390), H = +(q.get('h') || 844);
+const f = document.getElementById('f');
+f.width = W; f.height = H;
+f.src = '/games/bunnycloset.html';
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+(async function(){
+  let w = f.contentWindow;
+  for(let i = 0; i < 600 && !(w.__closet && w.__closet.m3()); i++) await sleep(25);
+  const C = w.__closet, m3 = C.m3();
+  const d = w.document;
+  const cv = d.getElementById('m3');
+
+  function pt(cell){
+    const r = cv.getBoundingClientRect(), CS = m3.state().cell;
+    return { x: r.left + cell.c * CS + CS / 2, y: r.top + cell.r * CS + CS / 2 };
+  }
+  function drag(a, b){
+    const p1 = pt(a), p2 = pt(b);
+    const mk = (t, p, buttons) => new w.PointerEvent(t, {
+      bubbles:true, cancelable:true, clientX:p.x, clientY:p.y,
+      pointerId:1, isPrimary:true, pointerType:'touch', button:0, buttons:buttons });
+    cv.dispatchEvent(mk('pointerdown', p1, 1));
+    cv.dispatchEvent(mk('pointermove', p2, 1));
+    cv.dispatchEvent(mk('pointerup', p2, 0));
+  }
+  function stepMoves(n){
+    for(let i = 0; i < n; i++){
+      const st = m3.state();
+      if(st.phase === 'end' || st.moves <= 0) break;
+      const mv = m3.findMove();
+      if(!mv) break;
+      drag({ r:mv.r1, c:mv.c1 }, { r:mv.r2, c:mv.c2 });
+      let g = 0;
+      while(g < 1200){
+        const p = m3.state().phase;
+        if(p === 'idle' || p === 'end') break;
+        m3.tick(1 / 60); g++;
+      }
+    }
+  }
+
+  if(mode === 'buddyzoom'){
+    /* 放大看兔子：不同搭配 × 不同状态，验证「穿的是衣橱里配的那套」 */
+    C.startRound(); await sleep(40); stepMoves(4);
+    function decay(){ for(let i = 0; i < 80; i++) C.tickBuddy(0.05); }
+    function grab(label){
+      return '<figure><figcaption>' + label + '</figcaption>' +
+        '<img src="' + d.getElementById('buddy').toDataURL() + '"></figure>';
+    }
+    let shots = [];
+    C.S.worn.hat = 'h_straw'; C.S.worn.cloth = 'c_overall'; C.S.worn.acc = 'a_glass';
+    decay();
+    shots.push(grab('待机 · 草莓帽+背带裤+圆眼镜'));
+    C.buddyCheer({ combo:2, cleared:3, gain:3 });
+    C.tickBuddy(0.10);
+    shots.push(grab('开心 · 小跳'));
+    C.buddyCheer({ combo:5, cleared:6, gain:30 });
+    C.tickBuddy(0.13);
+    shots.push(grab('大反应 · 星星'));
+
+    shots.push('<figure style="flex-basis:100%;height:0;margin:0"></figure>');
+    C.S.worn.hat = 'h_crown'; C.S.worn.cloth = 'c_dress'; C.S.worn.acc = 'a_wing';
+    decay();
+    shots.push(grab('换一套 · 小皇冠+小裙子+小翅膀'));
+    C.S.worn.hat = null; C.S.worn.cloth = null; C.S.worn.acc = null;
+    decay();
+    shots.push(grab('什么都没穿'));
+    C.S.worn.hat = 'h_night'; C.S.worn.cloth = 'c_scarf'; C.S.worn.acc = 'a_bow';
+    decay();
+    shots.push(grab('睡帽+围巾+蝴蝶结'));
+
+    document.body.innerHTML = '<style>body{margin:0;background:#FAF0E2;display:flex;' +
+      'flex-wrap:wrap;gap:14px;padding:16px;align-items:flex-start}figure{margin:0;text-align:center}' +
+      'figcaption{font:600 12px sans-serif;color:#5A4B42;padding:6px}' +
+      'img{width:168px;height:264px;image-rendering:auto;background:rgba(255,253,248,.75);' +
+      'border-radius:16px}</style>' + shots.join('');
+    document.title = 'SHOT-READY buddy';
+    return;
+  }
+
+  /* 默认是光着的，先给它配一套，截图才能看出兔子穿的是衣橱里的搭配 */
+  C.S.worn.hat = 'h_straw'; C.S.worn.cloth = 'c_overall'; C.S.worn.acc = 'a_glass';
+  C.switchView('work');
+  await sleep(80);
+
+  if(mode === 'round'){
+    C.startRound();
+    await sleep(40);
+    stepMoves(40);                       /* 一直消到步数用完 */
+    await sleep(900);
+  } else if(mode === 'sound'){
+    C.sheets.sound();
+    await sleep(900);
+  } else if(mode === 'react'){
+    C.startRound();
+    await sleep(40);
+    stepMoves(9);
+    /* 把连击横幅定在动画最饱满的那一帧，方便截图 */
+    const el = d.getElementById('combo');
+    el.textContent = '连击 x5';
+    el.classList.add('show');
+    el.style.animationDelay = '-0.2s';
+    el.style.animationPlayState = 'paused';
+    await sleep(150);
+    /* 反应和截图之间要挨紧：待机撒娇的判定是 11 秒没动作，
+       虚拟时间里一眨眼就过了 11 秒，会把台词顶掉 */
+    C.buddyCheer({ combo:5, cleared:6, gain:30 });
+    C.tickBuddy(0.09);
+  } else {
+    C.startRound();
+    await sleep(40);
+    stepMoves(9);
+    C.tickBuddy(0.02);
+    await sleep(900);
+  }
+  document.title = 'SHOT-READY ' + C.buddy().say;
+})();
+</script>
+</body></html>

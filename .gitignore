@@ -9,8 +9,11 @@ V3.html
 # 已改造成 games/lastcell.html，这份是重构前的旧副本，留本地存档
 最后一格V3.html
 
-# 其它会话产出的测试与截图
-tests/
+# 另一个会话产出的临时脚本与截图（不是本仓库的正式测试）
+tests/harness.mjs
+tests/logic.test.mjs
+tests/shots.mjs
+tests/tune.mjs
 shots/
 
 # 根目录下的重复截图（preview/ 里已有）
