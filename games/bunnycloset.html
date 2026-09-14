@@ -18,17 +18,19 @@
   display:flex;flex-direction:column;padding:calc(46px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));
   gap:8px;overflow:hidden}
 
-/* 顶栏 */
-.top{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-.pill{background:rgba(255,253,248,.95);border:2px solid var(--line);border-radius:15px;
-  padding:5px 11px 4px;box-shadow:3px 3px 0 var(--tap);display:flex;align-items:baseline;gap:5px}
-.pill small{font-size:10px;color:var(--ink3)}
-.pill b{font-size:17px;color:#D8863C;font-variant-numeric:tabular-nums}
-.pill .rate{font-size:10px;color:#B99A7C}
-.top .spacer{flex:1}
-.iconBtn{width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center;
-  border:2px solid var(--line);border-radius:13px;background:rgba(255,253,248,.95);
-  color:#7A6353;font-size:15px;box-shadow:3px 3px 0 var(--tap);cursor:pointer;text-decoration:none}
+/* 顶栏：两个数额胶囊 + 两个图标按钮要挤在一行里，全部禁止换行 */
+.top{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.pill{background:rgba(255,253,248,.95);border:2px solid var(--line);border-radius:14px;
+  padding:4px 9px;box-shadow:2px 3px 0 var(--tap);display:flex;align-items:baseline;gap:4px;
+  white-space:nowrap;min-width:0}
+.pill small{font-size:9.5px;color:var(--ink3);white-space:nowrap}
+.pill b{font-size:16px;color:#D8863C;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill .rate{font-size:9px;color:#B99A7C;white-space:nowrap}
+.top .spacer{flex:1;min-width:2px}
+.iconBtn{width:32px;height:32px;flex:0 0 32px;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--line);border-radius:12px;background:rgba(255,253,248,.95);
+  color:#7A6353;font-size:15px;box-shadow:2px 3px 0 var(--tap);cursor:pointer;text-decoration:none}
+.top .backBtn{width:32px;height:32px;flex:0 0 32px;border-radius:12px;font-size:17px}
 
 /* 展示台 */
 .stage{position:relative;flex:1 1 auto;min-height:0;border-radius:20px;overflow:hidden;
@@ -128,7 +130,55 @@
   background:rgba(255,252,246,.86);border:2px solid var(--line);
   box-shadow:4px 5px 0 var(--tap),0 10px 24px rgba(150,118,92,.12)}
 #m3{display:block;margin:0 auto;border-radius:13px;touch-action:none}
-.workTip{flex:0 0 auto;margin:0;font-size:10.5px;color:#BCA894;text-align:center;line-height:1.6}
+
+/* 连击横幅：之前完全没有样式，连击文字会挤在棋盘下方把布局撑开 */
+.combo{position:absolute;left:0;right:0;top:32%;text-align:center;pointer-events:none;
+  font-size:24px;font-weight:800;color:#fff;letter-spacing:1px;
+  /* 四周描边：连击横幅压在花花绿绿的水果上，只靠投影会糊成一团 */
+  text-shadow:
+    -2px -2px 0 var(--pink-d), 2px -2px 0 var(--pink-d),
+    -2px 2px 0 var(--pink-d), 2px 2px 0 var(--pink-d),
+    0 5px 12px rgba(120,60,80,.35);
+  opacity:0;transform:scale(.6)}
+.combo.show{animation:comboPop .72s cubic-bezier(.2,1.5,.4,1)}
+@keyframes comboPop{
+  0%{opacity:0;transform:scale(.5) rotate(-6deg)}
+  28%{opacity:1;transform:scale(1.16) rotate(2deg)}
+  68%{opacity:1;transform:scale(1) rotate(0)}
+  100%{opacity:0;transform:scale(1.1)}}
+
+/* 兔子围观条 */
+.buddyRow{flex:0 0 auto;display:flex;align-items:center;gap:8px;height:100px}
+#buddy{flex:0 0 70px;width:70px;height:100px;display:block}
+.bubble{position:relative;flex:1;min-width:0;
+  background:#FFFDF8;border:1.5px solid var(--line);border-radius:14px;
+  padding:8px 11px;font-size:11.5px;line-height:1.5;color:#7A6353;
+  box-shadow:2px 2px 0 var(--tap);
+  transition:background .18s,border-color .18s,color .18s}
+.bubble:before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;
+  width:9px;height:9px;background:#FFFDF8;border-left:1.5px solid var(--line);
+  border-bottom:1.5px solid var(--line);transform:rotate(45deg)}
+.bubble.pop{animation:bubblePop .36s cubic-bezier(.2,1.5,.4,1)}
+@keyframes bubblePop{0%{transform:scale(.92)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
+.bubble.hot{color:#C4697B;border-color:#EBCBD2;background:#FFF3F5}
+.bubble.hot:before{background:#FFF3F5;border-color:#EBCBD2}
+
+/* 结算卡片在本作里居中（theme.css 只重置了会被 .box 带偏的属性） */
+.resultRow .box{text-align:center}
+
+/* 声音开关 */
+.sndRow{display:flex;align-items:center;gap:12px;margin-top:9px;
+  background:rgba(255,253,248,.9);border:2px solid var(--line);border-radius:16px;padding:10px 13px}
+.sndRow b{flex:1;font-size:13px;color:#5A4B42;font-weight:600}
+.sndRow small{display:block;font-size:10px;color:var(--ink3);font-weight:400;margin-top:2px}
+.sw{width:52px;height:30px;flex:0 0 52px;border-radius:999px;border:1.5px solid var(--line);
+  background:#EFE3D4;position:relative;cursor:pointer;font-family:inherit;padding:0;
+  transition:background .18s,border-color .18s}
+.sw:after{content:"";position:absolute;left:2px;top:2px;width:23px;height:23px;border-radius:50%;
+  background:#FFFDF8;box-shadow:0 1px 3px rgba(120,90,70,.28);transition:transform .18s}
+.sw.on{background:#F0BFC9;border-color:#E0A3B1}
+.sw.on:after{transform:translateX(22px)}
+.iconBtn.off{opacity:.45}
 
 /* ---------- 通用底部弹层 ---------- */
 .sheetWrap{position:fixed;inset:0;z-index:24;display:flex;align-items:flex-end;
@@ -191,6 +241,7 @@
       <small>体力</small><b id="energyNum">5</b><span class="rate" id="energyTip">已满</span>
     </div>
     <div class="spacer"></div>
+    <button class="iconBtn" id="btnSound" title="声音设置">♪</button>
     <button class="iconBtn" id="btnCard" title="生成形象卡">✧</button>
   </div>
 
@@ -219,7 +270,11 @@
       <canvas id="m3"></canvas>
       <div class="combo" id="combo"></div>
     </div>
-    <p class="workTip" id="workTip">滑动交换相邻的水果，三个连一起就消掉 · 没有输赢，消到步数用完为止</p>
+    <!-- 兔子就站在棋盘旁边围观：气泡里的台词同时充当操作提示 -->
+    <div class="buddyRow">
+      <canvas id="buddy"></canvas>
+      <div class="bubble" id="buddySay">点「开始劳作」，我在这儿看着你消</div>
+    </div>
     <div class="actions">
       <button class="btn primary" id="btnWork">开始劳作<small>消耗 1 点体力</small></button>
       <button class="btn ad" id="btnRevive">看广告 +5 步<small>每局一次</small></button>
@@ -285,6 +340,8 @@ var ENERGY_MAX = 5;                /* 体力上限 */
 var ENERGY_SEC = 20 * 60;          /* 每 20 分钟回 1 点体力 */
 var ENERGY_AD = 3;                 /* 看广告补的体力 */
 var ENERGY_AD_MAX = 3;             /* 每天最多补几次 */
+var WHEEL_FREE = 3;                /* 转盘每天免费几次 */
+var WHEEL_AD = 2;                  /* 转盘每天看广告几次 */
 
 /* 抽取概率：普通 62% / 稀有 28% / 传说 10% */
 var RARITY = [
@@ -1317,8 +1374,15 @@ function switchView(v){
   Array.prototype.forEach.call(document.querySelectorAll('.nav button[data-view]'), function(b){
     b.classList.toggle('on', b.dataset.view === v);
   });
-  if(v === 'work'){ if(m3) m3.setActive(true); }
-  else { if(m3) m3.setActive(false); drawStage(); }
+  if(v === 'work'){
+    /* 进劳作页才量得到高度，这时才知道棋盘最多能多高 */
+    if(m3){ m3.resize(); m3.setActive(round.playing); }
+    resizeBuddy();
+    if(!round.playing) buddySay('点「开始劳作」，我在这儿看着你消', false, true);
+  } else {
+    if(m3) m3.setActive(false);
+    drawStage();
+  }
   refreshDots();
 }
 
@@ -1335,7 +1399,7 @@ function refreshDots(){
   var taskLeft = 0;
   TASKS.forEach(function(t){ if(!S.taskDone[t.id]) taskLeft++; });
   setDot($('btnTask'), taskLeft > 0);
-  setDot($('btnWheel'), S.wheelUsed + S.wheelAdUsed < 3 + 2);
+  setDot($('btnWheel'), S.wheelUsed + S.wheelAdUsed < WHEEL_FREE + WHEEL_AD);
 }
 function setDot(el, on){
   var d = el.querySelector('.dot');
@@ -1348,18 +1412,42 @@ function setDot(el, on){
 
 /* ---------- 通用底部弹层 ---------- */
 /* binder 必须和内容一起传进来：原来是在 showSheet 之后再赋 sheetBinder，
-   等于弹层里的按钮从来没绑上事件 */
-function showSheet(html, binder){
+   等于弹层里的按钮从来没绑上事件。
+   onClose 是「无论怎么关都会执行」的收尾钩子（结算面板靠它兜住收益）。*/
+var sheetBinder = null;
+var sheetOnClose = null;
+var sheetSeq = 0;                  /* 每次开关都自增，用来判断弹层是否还是当初那个 */
+
+function showSheet(html, binder, onClose){
   $('sheet').innerHTML = html;
   $('sheetWrap').classList.remove('hide');
   sheetBinder = binder || null;
+  sheetOnClose = onClose || null;
+  sheetSeq++;
   bindSheet();
 }
-function closeSheet(){ $('sheetWrap').classList.add('hide'); }
-$('sheetWrap').addEventListener('click', function(e){ if(e.target === $('sheetWrap')) closeSheet(); });
-/* 弹层里的事件在插入后绑定；每个弹层自己补 bind 钩子 */
-var sheetBinder = null;
-function bindSheet(){ if(sheetBinder) sheetBinder(); }
+function closeSheet(){
+  $('sheetWrap').classList.add('hide');
+  sheetSeq++;
+  var f = sheetOnClose;
+  sheetOnClose = null;
+  if(f) f();
+}
+/* 弹层里的事件在插入后绑定 */
+function bindSheet(){
+  /* 关闭按钮统一在这里绑。以前每处弹层各写一遍、结果全都漏掉了，
+     「关闭」只能靠点遮罩，等于按钮是坏的 */
+  Array.prototype.forEach.call($('sheet').querySelectorAll('[data-close]'), function(b){
+    b.addEventListener('click', function(){
+      GameAudio.sfx('ui');
+      closeSheet();
+    });
+  });
+  if(sheetBinder) sheetBinder();
+}
+$('sheetWrap').addEventListener('click', function(e){
+  if(e.target === $('sheetWrap')) closeSheet();
+});
 
 /* ---------- 每日任务（完成即自动发放，少一层点击） ---------- */
 function taskDone(id){
@@ -1526,9 +1614,9 @@ function grantWheel(idx){
 }
 
 function sheetWheel(){
-  var freeLeft = Math.max(0, 3 - S.wheelUsed);
-  var adLeft = Math.max(0, 2 - S.wheelAdUsed);
-  var html = '<h2>幸运转盘</h2><p class="sub">每天 3 次免费，还能看广告多转 2 次</p>' +
+  var freeLeft = Math.max(0, WHEEL_FREE - S.wheelUsed);
+  var adLeft = Math.max(0, WHEEL_AD - S.wheelAdUsed);
+  var html = '<h2>幸运转盘</h2><p class="sub">每天 ' + WHEEL_FREE + ' 次免费，还能看广告多转 ' + WHEEL_AD + ' 次</p>' +
     '<div class="wheelBox"><div class="wheelPin">▼</div><canvas id="wheelCv"></canvas></div>' +
     '<div class="wheelTimes"><div>免费剩余 <b>' + freeLeft + '</b> 次</div>' +
     '<div>广告剩余 <b>' + adLeft + '</b> 次</div></div>' +
@@ -1546,6 +1634,9 @@ function sheetWheel(){
     wheelSpinning = true;
     $('spinFree').disabled = true; $('spinAd').disabled = true;
     GameAudio.unlock();
+    /* 记下当前弹层：转的过程中玩家可能已经把面板关了，
+       那种情况下奖励照发，但不能再把面板弹回来 */
+    var mySeq = sheetSeq;
 
     var idx = pickWheelIndex();
     var seg = 360 / WHEEL.length;
@@ -1561,10 +1652,10 @@ function sheetWheel(){
       finished = true;
       wheelSpinning = false;
       wheelAngle = ((from + delta) % 360) * Math.PI / 180;
-      drawWheel(cv, wheelAngle);
+      if(sheetSeq === mySeq) drawWheel(cv, wheelAngle);
       if(useAd) S.wheelAdUsed++; else S.wheelUsed++;
       grantWheel(idx);
-      setTimeout(sheetWheel, 700);
+      if(sheetSeq === mySeq) setTimeout(function(){ if(sheetSeq === mySeq) sheetWheel(); }, 700);
     }
     function anim(now){
       if(finished) return;
@@ -1587,16 +1678,179 @@ function sheetWheel(){
   }
 }
 
+/* ============================================================
+   9.5 兔子围观 —— 消除时兔子就站在棋盘旁边看着，
+       连击越高、收获越多，它的反应越大
+   ============================================================ */
+var buddyCv = $('buddy'), bctx = buddyCv.getContext('2d');
+var BW = 0, BH = 0;
+var lastSay = '';
+
+function resizeBuddy(){
+  BW = buddyCv.clientWidth || 70;
+  BH = buddyCv.clientHeight || 100;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  buddyCv.width = Math.round(BW * dpr);
+  buddyCv.height = Math.round(BH * dpr);
+  bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+/* 反应分三档：平时眨眼 → 开心跳一下 → 大反应（跳更高 + 星星） */
+var buddy = {
+  t: 0, cheer: 0, hop: 0, hot: 0, lean: 0,
+  spark: [], milestone: 0
+};
+
+/* 兔子坐标系里它实际占的方框（耳朵尖到脚底） */
+var BUDDY_BOX = { x: 18, y: -6, w: 64, h: 140 };
+var BUDDY_FOOT_PAD = 7;        /* 脚底往下留给影子的空间 */
+
+function buddyReset(){
+  buddy.cheer = 0; buddy.hop = 0; buddy.hot = 0; buddy.lean = 0;
+  buddy.spark = []; buddy.milestone = 0;
+}
+
+/* 台词写进气泡。quiet=true 是状态提示：内容没变就不重播动画 */
+function buddySay(text, hot, quiet){
+  if(!text) return;
+  if(quiet && text === lastSay) return;
+  lastSay = text;
+  var el = $('buddySay');
+  el.textContent = text;
+  el.classList.toggle('hot', !!hot);
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+function spawnSpark(n){
+  /* 从兔子四周往外飞，而不是从脸上冒出来 —— 撒在脸上会把表情遮住，
+     而表情正是这个角色唯一的信息量 */
+  for(var i = 0; i < n; i++){
+    var a = -Math.PI * (0.08 + Math.random() * 0.84);         /* 上半圈 */
+    var rad = BW * (0.34 + Math.random() * 0.2);
+    var out = 18 + Math.random() * 34;
+    buddy.spark.push({
+      x: BW / 2 + Math.cos(a) * rad,
+      y: BH * 0.48 + Math.sin(a) * rad * 0.66,
+      vx: Math.cos(a) * out,
+      vy: Math.sin(a) * (out + 14) - 16,
+      age: 0, life: 0.6 + Math.random() * 0.35,
+      r: 1.5 + Math.random() * 2.0,
+      col: ['#F2C14E', '#E68B9C', '#8FCFB0', '#9DB8F0'][Math.floor(Math.random() * 4)],
+      star: Math.random() < 0.45
+    });
+  }
+  if(buddy.spark.length > 60) buddy.spark.splice(0, buddy.spark.length - 60);
+}
+
+function drawBuddy(dt){
+  if(!BW || !BH) resizeBuddy();
+  buddy.t += dt;
+  if(buddy.cheer > 0) buddy.cheer = Math.max(0, buddy.cheer - dt);
+  if(buddy.hot > 0)   buddy.hot   = Math.max(0, buddy.hot - dt);
+  if(buddy.hop > 0)   buddy.hop   = Math.max(0, buddy.hop - dt * 2.6);
+  buddy.lean += ((buddy.hot > 0 ? 1 : 0) - buddy.lean) * Math.min(1, dt * 8);
+
+  bctx.clearRect(0, 0, BW, BH);
+
+  var prog = 1 - buddy.hop;                       /* 0 → 1 */
+  var amp  = buddy.hot > 0 ? 16 : 8;
+  var lift = buddy.hop > 0 ? Math.sin(Math.PI * prog) * amp : 0;
+  /* 缩放要按「画布高度减去脚垫」算，脚底锚在脚垫中间，
+     否则整个盒子会被顶出画布顶端，耳朵就被裁掉了 */
+  var sc   = Math.min(BW / BUDDY_BOX.w, (BH - BUDDY_FOOT_PAD) / BUDDY_BOX.h);
+  var baseY = BH - BUDDY_FOOT_PAD / 2;
+  var mood = buddy.cheer > 0 ? 'happy' : 'idle';
+
+  /* 影子：跳起来时缩小、变淡 */
+  var sh = Math.max(0.4, 1 - lift / 30);
+  bctx.fillStyle = 'rgba(150,118,92,.18)';
+  bctx.beginPath();
+  bctx.ellipse(BW / 2, baseY + 2, 17 * sh, 3.4 * sh, 0, 0, Math.PI * 2);
+  bctx.fill();
+
+  bctx.save();
+  bctx.translate(BW / 2 + buddy.lean * 3, baseY - lift);
+  if(buddy.hot > 0) bctx.rotate(-0.06 * buddy.lean);
+  bctx.scale(sc, sc);
+  bctx.translate(-(BUDDY_BOX.x + BUDDY_BOX.w / 2), -(BUDDY_BOX.y + BUDDY_BOX.h));
+  drawBody(bctx, buddy.t);
+  drawHead(bctx);
+  drawFace(bctx, mood, buddy.t);
+  bctx.restore();
+
+  for(var i = buddy.spark.length - 1; i >= 0; i--){
+    var p = buddy.spark[i];
+    p.age += dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 150 * dt;
+    if(p.age >= p.life){ buddy.spark.splice(i, 1); continue; }
+    bctx.globalAlpha = Math.max(0, 1 - p.age / p.life);
+    bctx.fillStyle = p.col;
+    if(p.star) star(bctx, p.x, p.y, p.r * 2.2, p.r * 0.9, p.age * 4);
+    else { bctx.beginPath(); bctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); }
+    bctx.fill();
+  }
+  bctx.globalAlpha = 1;
+}
+
+/* 每次消除都会走这里：连击越高、单次消得越多，反应越大 */
+function buddyCheer(info){
+  var big = info.combo >= 4 || info.cleared >= 5;
+  buddy.cheer = big ? 1.5 : 0.85;
+  buddy.hop = 1;
+  if(big){
+    buddy.hot = 1.3;
+    spawnSpark(12 + Math.min(10, info.combo * 2));
+    GameAudio.sfx('ding');
+  } else if(info.combo >= 2){
+    spawnSpark(4);
+  }
+
+  /* 收获每跨过 50 个就庆祝一次：让「分数高」也有反馈，而不只是连击 */
+  var step = Math.floor(round.gained / 50);
+  if(step > buddy.milestone){
+    buddy.milestone = step;
+    buddy.hot = Math.max(buddy.hot, 1.4);
+    buddy.hop = 1;
+    spawnSpark(18);
+    GameAudio.sfx('ding');
+    buddySay('已经收到 ' + round.gained + ' 个胡萝卜啦！', true);
+    return;
+  }
+
+  if(info.combo >= 4) buddySay('哇！' + info.combo + ' 连击，太厉害了！', true);
+  else if(info.cleared >= 5) buddySay('一次就消掉 ' + info.cleared + ' 个！', true);
+  else if(info.combo >= 2) buddySay('连击 x' + info.combo + '，继续！', true);
+  else buddySay('消掉 ' + info.cleared + ' 个啦', false, true);
+}
+
 /* ---------- 劳作（三消） ---------- */
 var m3 = null;
-var round = { playing:false, gained:0, reviveUsed:false };
+var round = { playing:false, gained:0, reviveUsed:false, settled:true, total:0 };
+
+/* 棋盘最大高度：矮屏上保证整页放得下，不会把下面的按钮挤出屏幕 */
+function m3MaxHeight(){
+  var v = $('viewWork');
+  if(!v || !v.clientHeight) return 0;              /* 视图没显示时不做限制 */
+  var fixed = 8 * 3;                               /* 三个 gap */
+  ['workHead', 'buddyRow', 'actions'].forEach(function(cls){
+    var el = v.querySelector('.' + cls);
+    if(el) fixed += el.offsetHeight;
+  });
+  fixed += 8 * 2 + 4;                              /* boardBox 的 padding 与边框 */
+  return Math.max(150, v.clientHeight - fixed);
+}
 
 function initM3(){
   m3 = Match3.create($('m3'), {
     cols: M3_COLS, rows: M3_ROWS, kinds: M3_KINDS, moves: M3_MOVES,
+    maxHeight: m3MaxHeight,
     drawTile: drawFruit,
     particleColor: function(kind){ return FRUIT[kind].main; },
     sfx: function(name, n){ GameAudio.sfx(name, n); },
+    /* 还没开始劳作就点棋盘：给一句提示，而不是静默无反应 */
+    onInactiveTap: function(){ buddySay('先点下面的「开始劳作」呀～', false, true); },
     onMatch: function(info){
       round.gained += info.gain;
       $('gainNum').textContent = round.gained;
@@ -1607,17 +1861,25 @@ function initM3(){
         void el.offsetWidth;
         el.classList.add('show');
       }
+      buddyCheer(info);
     },
     onMove: function(left){
       $('movesNum').textContent = left;
       /* 步数快用完了给个提示 */
-      $('workTip').textContent = left <= 0
-        ? '这一局结束了，收下胡萝卜或者看广告续步'
-        : (left <= 3 ? '只剩 ' + left + ' 步了，可以看广告续步' : '滑动交换相邻的水果，三个连一起就消掉');
+      if(left <= 0) buddySay('步数用完啦，想看广告续步继续消', false, true);
+      else if(left <= 3) buddySay('只剩 ' + left + ' 步了', false, true);
+      else buddySay('滑动交换相邻的水果，三个连一起就消掉', false, true);
     },
     onEnd: function(total){ onRoundEnd(total); }
   });
-  m3.setActive(curView === 'work');
+  m3.setActive(round.playing && curView === 'work');
+}
+
+function setWorkBusy(playing){
+  $('btnWork').disabled = playing;
+  /* 续步只在一局进行中才有意义；结算面板里有单独的续步入口 */
+  $('btnRevive').disabled = !playing || round.reviveUsed;
+  if(m3) m3.setActive(playing && curView === 'work');
 }
 
 function startRound(){
@@ -1627,35 +1889,49 @@ function startRound(){
   saveNow(); renderEnergy();
   /* 就地改字段而不是整体重新赋值，外部持有引用时才不会拿到旧对象 */
   round.playing = true; round.gained = 0; round.reviveUsed = false;
+  round.settled = false; round.total = 0;
+  buddyReset();
   $('gainNum').textContent = 0;
-  $('btnWork').disabled = true;
-  $('btnRevive').disabled = false;
+  $('bestNum').textContent = S.bestRound;
+  setWorkBusy(true);
   GameAudio.unlock();
   m3.start();
+  buddySay('开始啦，我在这儿看着你消～', false);
   taskDone('work');
   refreshDots();
 }
 
 function onRoundEnd(total){
   round.playing = false;
-  $('btnRevive').disabled = round.reviveUsed;
-  $('btnWork').disabled = false;
-  if(total > S.bestRound){ S.bestRound = total; saveNow(); }
+  round.total = total || 0;
+  if(round.total > S.bestRound){ S.bestRound = round.total; saveNow(); }
   $('bestNum').textContent = S.bestRound;
-  showSheet(sheetRound(total));
+  setWorkBusy(false);
+  GameAudio.sfx('ding');
+  buddy.cheer = 1.2; buddy.hop = 1;
+  buddySay('这一局辛苦啦，把胡萝卜收下吧', false);
+  sheetRound(round.total);
 }
 
-function finalizeRound(total){
-  var gained = round.gained;
-  S.carrots += gained;
+/* 收获只结算一次。所有离开结算面板的路径都必须经过这里 ——
+   以前只有「收下胡萝卜」会结算，点「先去忙别的」或者点遮罩关掉，
+   这一局消出来的胡萝卜就白白丢了 */
+function takeRoundHarvest(loud){
+  if(round.settled) return 0;
+  round.settled = true;
+  var g = round.gained;
+  S.carrots += g;
   saveNow(); renderCarrots();
-  closeSheet();
-  toast('收下 ' + gained + ' 个胡萝卜');
-  GameAudio.sfx('win');
-  $('btnRevive').disabled = true;
+  if(g > 0) toast((loud ? '收下 ' : '已收下 ') + g + ' 个胡萝卜');
+  if(loud){
+    GameAudio.sfx('win');
+    buddySay(g > 0 ? '收到 ' + g + ' 个胡萝卜！' : '下次多消一点～', g >= 60);
+  }
+  return g;
 }
 
 function sheetRound(total){
+  total = total || 0;
   var html = '<h2>这一局结束了</h2>' +
     '<p class="sub">消掉 ' + total + ' 个水果，收获 ' + round.gained + ' 个胡萝卜</p>' +
     '<div class="resultRow">' +
@@ -1668,19 +1944,66 @@ function sheetRound(total){
       : '<button class="btn ad" style="width:100%;margin-top:12px" id="reviveNow">看广告 +' + M3_REVIVE + ' 步，继续消</button>') +
     '<button class="btn primary" style="width:100%;margin-top:10px" id="takeCarrot">收下胡萝卜</button>' +
     '<button class="sheetClose" data-close="1">先去忙别的</button>';
-  showSheet(html, bindSheet);
+  /* 第三个参数是「无论怎么关都会执行」的收尾：兜住这一局的收益 */
+  showSheet(html, bindSheet, function(){ takeRoundHarvest(false); });
+
   function bindSheet(){
     var rv = $('reviveNow');
     if(rv) rv.addEventListener('click', function(){
       showAd('revive', function(ok){
         if(!ok) return;
         round.reviveUsed = true;
+        /* 续步是要接着消的，这一局还没完，所以关面板时不能结算 */
+        sheetOnClose = null;
         closeSheet();
         m3.addMoves(M3_REVIVE);
+        round.playing = true;
+        setWorkBusy(true);
         $('gainNum').textContent = round.gained;
+        buddySay('又续了 ' + M3_REVIVE + ' 步，接着来！', false);
       });
     });
-    $('takeCarrot').addEventListener('click', function(){ finalizeRound(total); });
+    var tc = $('takeCarrot');
+    if(tc) tc.addEventListener('click', function(){
+      takeRoundHarvest(true);
+      closeSheet();
+    });
+  }
+}
+
+/* ---------- 声音设置 ---------- */
+function renderSoundBtn(){
+  var off = !GameAudio.musicOn() && !GameAudio.sfxOn();
+  var b = $('btnSound');
+  b.classList.toggle('off', off);
+  b.title = off ? '声音已关闭' : '声音设置';
+}
+
+function sheetSound(){
+  var html = '<h2>声音</h2><p class="sub">音乐和音效可以分开关</p>' +
+    '<div class="sndRow"><b>背景音乐<small>八音盒，实时合成，不需要联网</small></b>' +
+      '<button class="sw' + (GameAudio.musicOn() ? ' on' : '') + '" id="swMusic" aria-label="背景音乐"></button></div>' +
+    '<div class="sndRow"><b>音效<small>消除、开箱、按钮的声音</small></b>' +
+      '<button class="sw' + (GameAudio.sfxOn() ? ' on' : '') + '" id="swSfx" aria-label="音效"></button></div>' +
+    '<button class="sheetClose" data-close="1">关闭</button>';
+  showSheet(html, bindSheet);
+
+  function bindSheet(){
+    $('swMusic').addEventListener('click', function(){
+      GameAudio.unlock();
+      var on = !GameAudio.musicOn();
+      GameAudio.setMusic(on);
+      this.classList.toggle('on', on);
+      if(on) GameAudio.sfx('ui');
+      renderSoundBtn();
+    });
+    $('swSfx').addEventListener('click', function(){
+      var on = !GameAudio.sfxOn();
+      GameAudio.setSfx(on);
+      this.classList.toggle('on', on);
+      GameAudio.sfx('ui');
+      renderSoundBtn();
+    });
   }
 }
 
@@ -1704,6 +2027,7 @@ function loop(now){
   if(S.carrots < 99999) S.carrots += CARROT_PER_SEC * dt;
   renderCarrots();
   if(curView === 'closet') drawStage();
+  else if(curView === 'work') drawBuddy(dt);
 
   /* 体力恢复 */
   if(recoverEnergy() > 0){ saveNow(); refreshDots(); }
@@ -1740,6 +2064,13 @@ resizeStage();
 drawStage();
 updateStageTag();
 initM3();
+/* 先把盘面摆好：一进劳作页看到的就是一副完整棋盘，而不是空白 */
+m3.start();
+m3.setActive(false);
+resizeBuddy();
+drawBuddy(0);
+renderSoundBtn();
+buddySay('点「开始劳作」，我在这儿看着你消', false, true);
 $('bestNum').textContent = S.bestRound;
 refreshDots();
 
@@ -1748,13 +2079,20 @@ $('btnSign').addEventListener('click', function(){ GameAudio.unlock(); GameAudio
 $('btnWheel').addEventListener('click', function(){ GameAudio.unlock(); GameAudio.sfx('ui'); sheetWheel(); });
 $('btnTask').addEventListener('click', function(){ GameAudio.unlock(); GameAudio.sfx('ui'); sheetTask(); });
 $('btnWork').addEventListener('click', startRound);
+$('btnSound').addEventListener('click', function(){
+  GameAudio.unlock(); GameAudio.sfx('ui');
+  sheetSound();
+});
 $('btnRevive').addEventListener('click', function(){
-  if(round.reviveUsed || !round.playing){ toast('这一局已经续过步了'); return; }
+  if(!round.playing){ toast('先开始一局劳作吧'); return; }
+  if(round.reviveUsed){ toast('这一局已经续过步了'); return; }
   showAd('revive', function(ok){
     if(!ok) return;
     round.reviveUsed = true;
     m3.addMoves(M3_REVIVE);
+    setWorkBusy(true);
     GameAudio.sfx('ui');
+    buddySay('又续了 ' + M3_REVIVE + ' 步，接着来！', false);
   });
 });
 
@@ -1766,11 +2104,17 @@ document.addEventListener('visibilitychange', function(){
     var g = collectOffline();
     if(g > 0) toast('又种了 ' + g + ' 个胡萝卜');
     saveNow();
-    if(m3) m3.setActive(curView === 'work');
+    if(m3) m3.setActive(round.playing && curView === 'work');
   }
 });
-/* 屏幕尺寸变了要重算棋盘 */
-window.addEventListener('resize', function(){ if(m3) m3.resize(); });
+/* 屏幕尺寸变了要重算棋盘与兔子 */
+window.addEventListener('resize', function(){
+  if(m3) m3.resize();
+  resizeBuddy();
+});
+window.addEventListener('orientationchange', function(){
+  setTimeout(function(){ if(m3) m3.resize(); resizeBuddy(); }, 250);
+});
 
 GameAudio.autoUnlock();
 requestAnimationFrame(loop);
@@ -1801,6 +2145,21 @@ window.__closet = {
   setEnergy: function(n){ S.energy = n; S.energyAt = Date.now(); saveNow(); renderEnergy(); },
   switchView: switchView,
   startRound: startRound,
+  takeHarvest: takeRoundHarvest,
+  tickBuddy: function(dt){ resizeBuddy(); drawBuddy(dt || 1 / 60); return BW + 'x' + BH; },
+  closeSheet: closeSheet,
+  sheetOpen: function(){ return !$('sheetWrap').classList.contains('hide'); },
+  sheetText: function(){ return $('sheet').textContent; },
+  sheets: { sign: sheetSign, wheel: sheetWheel, task: sheetTask, round: sheetRound, sound: sheetSound },
+  buddyCheer: function(info){ buddyCheer(info || { combo:1, cleared:3, gain:3 }); },
+  buddy: function(){
+    return {
+      cheer: buddy.cheer, hop: buddy.hop, hot: buddy.hot,
+      spark: buddy.spark.length, milestone: buddy.milestone,
+      say: $('buddySay').textContent,
+      hotClass: $('buddySay').classList.contains('hot')
+    };
+  },
   spinWheel: function(){ sheetWheel(); },
   openSign: sheetSign,
   openTask: sheetTask,

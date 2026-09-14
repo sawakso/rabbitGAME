@@ -32,7 +32,7 @@
     ctx = new AC();
 
     master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-    musicBus = ctx.createGain(); musicBus.gain.value = 0.5; musicBus.connect(master);
+    musicBus = ctx.createGain(); musicBus.gain.value = 0.62; musicBus.connect(master);
     sfxBus = ctx.createGain();   sfxBus.gain.value = 0.55; sfxBus.connect(master);
 
     /* 用延迟+反馈近似轻混响 */
@@ -100,13 +100,13 @@
     var P = PROG[bar];
 
     if(pos === 0){
-      for(var k = 0; k < P.pad.length; k++) padNote(hz(P.pad[k]), t, EIGHTH * PER_BAR * 0.95, 0.020);
-      bass(hz(P.root), t, 1.8, 0.050);
+      for(var k = 0; k < P.pad.length; k++) padNote(hz(P.pad[k]), t, EIGHTH * PER_BAR * 0.95, 0.024);
+      bass(hz(P.root), t, 1.8, 0.058);
     }
     if(pos === 4) bass(hz(P.root), t, 1.4, 0.034);
 
     if(pos % 2 === 0){
-      if(Math.random() < 0.88) bell(hz(P.mel[(pos / 2) % 4]), t, 0.115, musicBus);
+      if(Math.random() < 0.88) bell(hz(P.mel[(pos / 2) % 4]), t, 0.135, musicBus);
     }else if(pos === 3 || pos === 7){
       if(Math.random() < 0.22) bell(hz(P.mel[0]) * 2, t, 0.045, musicBus);
     }
@@ -226,6 +226,17 @@
       gapEach = gapEach || 0.1;
       var t0 = ctx.currentTime + 0.005;
       names.forEach(function(n, i){ blip(hz(n), t0 + i * gapEach, 0.09, 0.7); });
+    },
+
+    /* 诊断用：确认音频上下文与调度器是否真的在跑 */
+    debug: function(){
+      return {
+        state: ctx ? ctx.state : 'none',
+        musicOn: musicOn, sfxOn: sfxOn,
+        running: running, stepIdx: stepIdx,
+        scheduled: Math.round(nextTime * 100) / 100,
+        now: ctx ? Math.round(ctx.currentTime * 100) / 100 : -1
+      };
     },
 
     /* 切到后台时静音，回来后恢复 */

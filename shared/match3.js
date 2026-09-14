@@ -42,6 +42,7 @@
     var onMatch = opt.onMatch || function(){};
     var onMove = opt.onMove || function(){};
     var onEnd = opt.onEnd || function(){};
+    var onInactiveTap = opt.onInactiveTap || null;
     var sfx = opt.sfx || function(){};
     var drawTile = opt.drawTile;
 
@@ -69,6 +70,13 @@
       var pad = parseFloat(getComputedStyle(canvas.parentElement).paddingLeft) || 0;
       w -= pad * 2;
       CS = Math.floor(w / COLS);
+      /* 调用方可以限制棋盘高度（矮屏上保证整页放得下）。
+         maxHeight 允许传函数，每次 resize 重新求值 */
+      if(opt.maxHeight){
+        var mh = (typeof opt.maxHeight === 'function') ? opt.maxHeight() : opt.maxHeight;
+        if(mh > 0) CS = Math.min(CS, Math.floor(mh / ROWS));
+      }
+      CS = Math.max(24, CS);
       var size = CS * COLS;
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.style.width = size + 'px';
@@ -159,7 +167,9 @@
     }
 
     function onDown(e){
-      if(phase !== 'idle' || !active) return;
+      /* 不在进行中：给调用方一个机会提示玩家，而不是静默吞掉点击 */
+      if(!active){ if(onInactiveTap) onInactiveTap(); return; }
+      if(phase !== 'idle') return;
       var p = cellFrom(e);
       if(!p) return;
       pointer.down = true; pointer.r = p.r; pointer.c = p.c;
@@ -479,11 +489,21 @@
         grid = []; particles = []; pops = []; sel = null;
         phase = 'idle';
       },
-      resize: function(){ resize(); },
+      resize: function(){
+        resize();
+        /* 改画布尺寸会清空内容，这里补画一帧，否则调用方会看到空白棋盘 */
+        if(grid.length) paint();
+      },
       setActive: function(v){
         active = !!v;
         /* 从后台回来时把时间基准重置，避免一次巨量 dt */
-        if(active) lastT = performance.now();
+        if(active){
+          lastT = performance.now();
+        } else if(grid.length){
+          /* 停下来时补画一帧：主循环只在 active 时绘制，
+             未开始时如果一帧都不画，调用方看到的就是一块空白棋盘 */
+          paint();
+        }
       },
       addMoves: function(n){
         moves += n;

@@ -115,7 +115,13 @@ button{font-family:inherit}
 
 /* 结果统计三宫格 */
 .resultRow{display:flex;gap:9px;margin:14px 0 6px}
-.resultRow .box{flex:1;background:#FCF4E9;border:1.5px solid var(--line);border-radius:13px;padding:9px 4px}
+/* 同名 .box 在小游戏里是「盲盒」那个方块：固定 170×170、flex 居中、还会抖。
+   结算卡片要把这些统统覆盖掉，否则数字框会被撑成大方块、标签和数字挤成一行。
+   只重置会导致「跑偏」的属性，text-align 之类交给各小游戏自己定，
+   免得无意中改到别的游戏。 */
+.resultRow .box{flex:1;display:block;height:auto;position:static;
+  background:#FCF4E9;border:1.5px solid var(--line);border-radius:13px;
+  padding:9px 4px;animation:none}
 .resultRow small{display:block;font-size:10.5px;color:var(--ink3)}
 .resultRow b{font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
 .newBest{display:inline-block;margin-top:6px;font-size:11px;color:#B07A58;background:#FBE7D4;

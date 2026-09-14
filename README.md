@@ -32,13 +32,29 @@
 弹层给两个选择：看广告 +5 步继续消，或者收下胡萝卜。
 广告点位是「我还想再消一会儿」，而不是「我输了要救」，这两者的转化率差很远。
 
+**兔子会在棋盘旁边看着你消。** 它就是操作提示本身——气泡里的台词随状态变化：
+
+| 触发 | 兔子的反应 |
+| --- | --- |
+| 每次消除 | 跳一下、眯眼笑，气泡报「消掉 N 个啦」 |
+| 连击 x2 / x3 | 表情更兴奋 |
+| 连击 x4+ 或一次消 5 个以上 | 跳得更高、撒彩纸星星、气泡变红，音效换成清脆的「叮」 |
+| 收获每满 50 个 | 单独庆祝一次，让「分数高」也有反馈 |
+| 步数用完 | 「这一局辛苦啦，把胡萝卜收下吧」 |
+
 - **24 件可收集道具**：帽子 6 / 衣服 7 / 配饰 7 / 背景 5
 - 体力 5 点，每 20 分钟回 1 点，看广告可一次补 3 点
 - 签到第 7 天给一张**必出稀有以上的盲盒券**；开盲盒时会自动优先用掉
 - 转盘 8 格，每天 3 次免费 + 看广告再转 2 次
 - 开盲盒 30 胡萝卜，抽到自动穿上，立刻看到效果
+- 右上角 `♪` 是声音设置，背景音乐与音效可以分开关
 - **兔子、24 件道具、全部背景都是 Canvas 代码绘制，没有任何图片文件**
 - 未解锁的道具会淡显并标出稀有度——看得见、想要，但还不是你的
+
+**收益永不丢失**：结算面板不管怎么关（点「收下胡萝卜」、点「先去忙别的」、
+还是点遮罩），这一局消出来的胡萝卜都会结算一次，只有点「看广告继续消」才留着往下滚。
+
+**棋盘会自己适配屏幕高度**：矮屏上格子会自动缩小，保证棋盘和下面的按钮同屏放得下。
 
 ### 最后一格　`games/lastcell.html`　烧脑
 
@@ -87,6 +103,18 @@ shared/                 所有页面共用的模块
 lab/
   surf-proto.html       3D 海上冲浪原型（暂停，未接进大厅）
 preview/                效果截图
+  overview.png          合集大厅
+  closet.png            衣橱与收集
+  work.png              劳作页：兔子在棋盘旁边围观
+  react.png             连击时兔子的反应
+  round.png             一局结束的结算面板
+  sound.png             声音设置
+  small.png             360×780 小屏
+  buddy.png             兔子三种状态放大
+tests/                  本地测试页（已 gitignore，不随仓库发布）
+  closet-regression.html  48 项功能断言的回归测试
+  screenshot-host.html    截图宿主（?mode=work|react|round|sound|buddyzoom）
+  lastcell-compat.html    验证共用样式表的改动没有影响《最后一格》
 alt/index.html          另一个实现版本，留档备查
 ```
 
@@ -131,6 +159,35 @@ alt/index.html          另一个实现版本，留档备查
 
 音频**全部是 Web Audio 实时合成**，没有任何音频文件：零版权风险、断网可用、不增加包体。
 BGM 是 C–G–Am–F 四小节循环的八音盒。
+
+## 怎么验证
+
+这些游戏大量使用 Canvas 绘画（jsdom 没有 canvas 实现），所以**必须用真实浏览器测**：
+
+```bash
+# 起静态服务，然后在浏览器里打开测试页
+python -m http.server 8000
+# 回归测试（48 项断言，跑完页面顶部会输出 RESULT ALLPASS）
+open http://127.0.0.1:8000/tests/closet-regression.html
+```
+
+无头跑法（CI 里可用）：
+
+```bash
+chrome --headless=new --enable-unsafe-swiftshader --autoplay-policy=no-user-gesture-required \
+       --virtual-time-budget=180000 --dump-dom \
+       "http://127.0.0.1:8000/tests/closet-regression.html" | grep -o "RESULT[A-Z ]*"
+```
+
+三个坑值得记下来：
+
+- **无头环境下 `requestAnimationFrame` 几乎不跑**，任何靠 rAF 推进的动画逻辑都测不到。
+  所以 `match3.js` 提供了 `tick(dt)`，测试用它手动推进，结果就是确定的。
+- **无头环境下音频时钟不随虚拟时间前进**，`stepIdx` 涨不涨说明不了问题。
+  可靠的验证方式是给 `AudioContext.prototype.createOscillator` 挂计数：真的合成出音，
+  振荡器数量就会增长。
+- 无头 Chrome 的 `--window-size` 有最小宽度限制（504），要测真实手机宽度得用
+  iframe 固定尺寸。
 
 ## 本地运行
 
